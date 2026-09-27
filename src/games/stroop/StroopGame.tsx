@@ -3,6 +3,8 @@ import { sound } from '../../utils/sound';
 import { storage } from '../../utils/storage';
 import { Sparkles, Trophy, Play, RotateCcw, Zap } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../utils/supabase';
 
 interface ColorItem {
   name: string;
@@ -18,6 +20,7 @@ const COLORS: ColorItem[] = [
 ];
 
 export const StroopGame: React.FC = () => {
+  const { user, displayName } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -92,8 +95,11 @@ export const StroopGame: React.FC = () => {
       if (score >= hs && score > 0) {
         confetti({ particleCount: 80, spread: 60 });
       }
+      if (user && score > 0) {
+        db.saveScore(user.id, user.email || '', displayName || '玩家', 'stroop', score);
+      }
     }
-  }, [isGameOver, score]);
+  }, [isGameOver, score, user, displayName]);
 
   useEffect(() => {
     return () => {

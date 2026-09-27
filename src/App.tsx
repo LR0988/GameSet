@@ -6,8 +6,9 @@ import { StroopGame } from './games/stroop/StroopGame';
 import { Game2048 } from './games/game2048/Game2048';
 import { SnakeGame } from './games/snake/SnakeGame';
 import { sound } from './utils/sound';
+import { AuthProvider } from './context/AuthContext';
 
-export const App: React.FC = () => {
+export const AppContent: React.FC = () => {
   const [activeGame, setActiveGame] = useState<GameId>('nback');
   const [isMuted, setIsMuted] = useState<boolean>(sound.getMuted());
 
@@ -19,7 +20,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
-      {/* Top Navbar */}
+      {/* Top Navbar with Auth & Leaderboard */}
       <Navbar
         activeGame={activeGame}
         onSelectGame={setActiveGame}
@@ -37,9 +38,17 @@ export const App: React.FC = () => {
 
       {/* Footer */}
       <footer className="w-full py-4 border-t border-slate-900 bg-slate-950 text-center text-xs text-slate-500">
-        <p>Game Set © 2026 · Designed for Cognitive Enhancement & Leisure · Ready for Vercel Deployment</p>
+        <p>Game Set © 2026 · Powered by Supabase Auth & Cloud Database · Ready for Vercel</p>
       </footer>
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 

@@ -8,8 +8,11 @@ import { NBackTutorialModal } from './NBackTutorialModal';
 import { storage } from '../../utils/storage';
 import { Sliders, HelpCircle, Trophy, Sparkles, Brain, History } from 'lucide-react';
 import { NBackSessionStats } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../utils/supabase';
 
 export const NBackGame: React.FC = () => {
+  const { user, displayName } = useAuth();
   const initialSettings = storage.getNBackSettings();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
@@ -37,7 +40,15 @@ export const NBackGame: React.FC = () => {
   useEffect(() => {
     setHighScore(storage.getHighScore('nback'));
     setHistory(storage.getNBackHistory());
-  }, [sessionStats]);
+
+    if (sessionStats && user) {
+      db.saveScore(user.id, user.email || '', displayName || '玩家', 'nback', sessionStats.score, {
+        nLevel: sessionStats.nLevel,
+        mode: sessionStats.mode,
+        accuracy: sessionStats.overallAccuracy,
+      });
+    }
+  }, [sessionStats, user, displayName]);
 
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto py-2 px-4 space-y-5">

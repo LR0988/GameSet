@@ -3,6 +3,8 @@ import { sound } from '../../utils/sound';
 import { storage } from '../../utils/storage';
 import { Trophy, RotateCcw } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../utils/supabase';
 
 type Grid = number[][];
 
@@ -21,6 +23,7 @@ const TILE_COLORS: Record<number, { bg: string; text: string }> = {
 };
 
 export const Game2048: React.FC = () => {
+  const { user, displayName } = useAuth();
   const [board, setBoard] = useState<Grid>([
     [0, 0, 0, 0],
     [0, 0, 0, 0],
@@ -175,9 +178,12 @@ export const Game2048: React.FC = () => {
       if (!canMove) {
         setGameOver(true);
         sound.playGameOver();
+        if (user && newScore > 0) {
+          db.saveScore(user.id, user.email || '', displayName || '玩家', 'game2048', newScore);
+        }
       }
     }
-  }, [board, gameOver, score, highScore, won]);
+  }, [board, gameOver, score, highScore, won, user, displayName]);
 
   // Keyboard controls
   useEffect(() => {

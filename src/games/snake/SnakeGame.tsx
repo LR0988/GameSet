@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { sound } from '../../utils/sound';
 import { storage } from '../../utils/storage';
 import { Trophy, Play, RotateCcw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { db } from '../../utils/supabase';
 
 type Point = { x: number; y: number };
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
@@ -9,6 +11,7 @@ type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 const GRID_SIZE = 20;
 
 export const SnakeGame: React.FC = () => {
+  const { user, displayName } = useAuth();
   const [snake, setSnake] = useState<Point[]>([
     { x: 10, y: 10 },
     { x: 10, y: 11 },
@@ -57,7 +60,10 @@ export const SnakeGame: React.FC = () => {
     setIsPlaying(false);
     setIsGameOver(true);
     sound.playGameOver();
-  }, []);
+    if (user && score > 0) {
+      db.saveScore(user.id, user.email || '', displayName || '玩家', 'snake', score);
+    }
+  }, [user, displayName, score]);
 
   // Game loop
   useEffect(() => {
