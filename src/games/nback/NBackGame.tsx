@@ -99,9 +99,6 @@ export const NBackGame: React.FC = () => {
           >
             <Brain className="w-4 h-4 text-indigo-300" />
             <span>訓練挑戰</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/30 text-indigo-200">
-              {settings.nLevel}-Back
-            </span>
           </button>
 
           <button
@@ -116,7 +113,7 @@ export const NBackGame: React.FC = () => {
             }`}
           >
             <Sliders className="w-4 h-4 text-amber-400" />
-            <span>參數設定</span>
+            <span>設定</span>
           </button>
 
           <button
@@ -131,7 +128,7 @@ export const NBackGame: React.FC = () => {
             }`}
           >
             <TrendingUp className="w-4 h-4 text-indigo-400" />
-            <span>歷史趨勢</span>
+            <span>趨勢</span>
           </button>
 
           <button
@@ -146,7 +143,7 @@ export const NBackGame: React.FC = () => {
             }`}
           >
             <HelpCircle className="w-4 h-4 text-cyan-400" />
-            <span>玩法教學</span>
+            <span>教學</span>
           </button>
         </div>
 
@@ -154,18 +151,19 @@ export const NBackGame: React.FC = () => {
         <div className="flex items-center gap-1.5">
           <button
             onClick={handleToggleSound}
-            className={`p-2 rounded-xl border transition flex items-center justify-center ${
+            className={`flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-xs sm:text-sm font-semibold transition ${
               settings.soundEnabled
                 ? 'bg-slate-800/80 hover:bg-slate-750 border-slate-700/60 text-slate-300 hover:text-white'
                 : 'bg-rose-950/60 border-rose-800/80 text-rose-300 hover:text-rose-100'
             }`}
-            title={settings.soundEnabled ? '音效開啟 (點擊靜音)' : '音效已靜音 (點擊開啟)'}
+            title={settings.soundEnabled ? '喇叭已開啟 (點擊靜音)' : '喇叭已靜音 (點擊開啟)'}
           >
             {settings.soundEnabled ? (
               <Volume2 className="w-4 h-4 text-indigo-400" />
             ) : (
               <VolumeX className="w-4 h-4 text-rose-400" />
             )}
+            <span>喇叭</span>
           </button>
 
           <button
@@ -245,13 +243,13 @@ export const NBackGame: React.FC = () => {
         </>
       )}
 
-      {/* Tab 2: 參數設定 (Inline Settings Panel) */}
+      {/* Tab 2: 設定 (Inline Settings Panel) */}
       {activeTab === 'settings' && (
         <div className="w-full max-w-xl glass-panel rounded-2xl p-5 sm:p-6 space-y-5 animate-fadeIn">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-2 font-bold text-white text-base sm:text-lg">
               <Sliders className="w-5 h-5 text-amber-400" />
-              <span>N-Back 參數設定</span>
+              <span>N-Back 設定</span>
             </div>
             <button
               onClick={() => setActiveTab('train')}
@@ -376,13 +374,13 @@ export const NBackGame: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 3: 歷史趨勢 (Inline Analytics Panel) */}
+      {/* Tab 3: 趨勢 (Inline Analytics Panel) */}
       {activeTab === 'analytics' && (
         <div className="w-full max-w-2xl glass-panel rounded-2xl p-5 sm:p-6 space-y-5 animate-fadeIn">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-2 font-bold text-white text-base sm:text-lg">
               <TrendingUp className="w-5 h-5 text-indigo-400" />
-              <span>N-Back 歷史趨勢與成績</span>
+              <span>N-Back 趨勢與分析</span>
             </div>
             <button
               onClick={() => setActiveTab('train')}
@@ -435,13 +433,13 @@ export const NBackGame: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 4: 玩法教學 (Inline Tutorial Panel) */}
+      {/* Tab 4: 教學 (Inline Tutorial Panel) */}
       {activeTab === 'tutorial' && (
         <div className="w-full max-w-xl glass-panel rounded-2xl p-5 sm:p-6 space-y-5 animate-fadeIn">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center gap-2 font-bold text-white text-base sm:text-lg">
               <HelpCircle className="w-5 h-5 text-cyan-400" />
-              <span>N-Back 玩法教學與認知原理</span>
+              <span>N-Back 教學說明</span>
             </div>
             <button
               onClick={() => setActiveTab('train')}
