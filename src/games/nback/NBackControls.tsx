@@ -1,6 +1,7 @@
 import React from 'react';
 import { NBackMode, NBackResponse } from '../../types';
 import { Play, Square, Volume2, MapPin, Check, X } from 'lucide-react';
+import { sound } from '../../utils/sound';
 
 interface NBackControlsProps {
   isPlaying: boolean;
@@ -35,6 +36,21 @@ export const NBackControls: React.FC<NBackControlsProps> = ({
   const showPositionBtn = mode === 'dual' || mode === 'position';
   const showAudioBtn = mode === 'dual' || mode === 'audio';
 
+  const handleStart = () => {
+    sound.unlockAudio();
+    onStart();
+  };
+
+  const handlePosMatch = () => {
+    sound.unlockAudio();
+    onPositionMatch();
+  };
+
+  const handleAudMatch = () => {
+    sound.unlockAudio();
+    onAudioMatch();
+  };
+
   const progressPercent = totalTrials > 0 && currentTrialIdx >= 0 
     ? Math.min(100, Math.round(((currentTrialIdx + 1) / totalTrials) * 100))
     : 0;
@@ -45,7 +61,7 @@ export const NBackControls: React.FC<NBackControlsProps> = ({
       <div className="grid grid-cols-2 gap-3 w-full">
         {/* Left Button: Position Match (Key A) */}
         <button
-          onClick={onPositionMatch}
+          onClick={handlePosMatch}
           disabled={!isPlaying || !showPositionBtn}
           className={`relative flex flex-col items-center justify-center p-3.5 sm:p-4 rounded-2xl border-2 font-bold transition-all duration-150 active:scale-95 shadow-lg ${
             !isPlaying || !showPositionBtn
@@ -85,7 +101,7 @@ export const NBackControls: React.FC<NBackControlsProps> = ({
 
         {/* Right Button: Audio / Letter Match (Key L) */}
         <button
-          onClick={onAudioMatch}
+          onClick={handleAudMatch}
           disabled={!isPlaying || !showAudioBtn}
           className={`relative flex flex-col items-center justify-center p-3.5 sm:p-4 rounded-2xl border-2 font-bold transition-all duration-150 active:scale-95 shadow-lg ${
             !isPlaying || !showAudioBtn
@@ -144,7 +160,7 @@ export const NBackControls: React.FC<NBackControlsProps> = ({
       <div className="w-full">
         {!isPlaying ? (
           <button
-            onClick={onStart}
+            onClick={handleStart}
             className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white font-bold text-sm sm:text-base shadow-lg shadow-indigo-500/25 transition-all duration-150 active:scale-98"
           >
             <Play className="w-5 h-5 fill-current" />
