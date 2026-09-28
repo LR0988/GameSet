@@ -85,20 +85,20 @@ export const NBackGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto py-2 px-3 sm:px-4 space-y-4">
-      {/* N-Back Tab Navigation Bar (頁籤樣式) */}
-      <div className="w-full flex items-center justify-between border-b border-slate-800/80 pb-3 gap-2 flex-wrap sm:flex-nowrap">
+      {/* N-Back Tab Navigation Bar (頁籤樣式，同一排最左至最右) */}
+      <div className="w-full flex items-center justify-between border-b border-slate-800/80 pb-3 gap-2 flex-nowrap overflow-x-auto">
         {/* Left: Tab options */}
-        <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-slate-900/90 rounded-2xl border border-slate-800">
+        <div className="flex items-center gap-1 sm:gap-1.5 p-1 bg-slate-900/90 rounded-2xl border border-slate-800 flex-shrink-0">
           <button
             onClick={() => setActiveTab('train')}
-            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
               activeTab === 'train'
                 ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <Brain className="w-4 h-4 text-indigo-300" />
-            <span>訓練挑戰</span>
+            <span>訓練</span>
           </button>
 
           <button
@@ -106,7 +106,7 @@ export const NBackGame: React.FC = () => {
               if (isPlaying) stopGame();
               setActiveTab('settings');
             }}
-            className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'settings'
                 ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -121,7 +121,7 @@ export const NBackGame: React.FC = () => {
               if (isPlaying) stopGame();
               setActiveTab('analytics');
             }}
-            className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'analytics'
                 ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -136,7 +136,7 @@ export const NBackGame: React.FC = () => {
               if (isPlaying) stopGame();
               setActiveTab('tutorial');
             }}
-            className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
               activeTab === 'tutorial'
                 ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -147,11 +147,11 @@ export const NBackGame: React.FC = () => {
           </button>
         </div>
 
-        {/* Right: Sound toggle and test */}
-        <div className="flex items-center gap-1.5">
+        {/* Right: Sound toggle and test (同一排最右邊) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           <button
             onClick={handleToggleSound}
-            className={`flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-xs sm:text-sm font-semibold transition ${
+            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border text-xs sm:text-sm font-semibold transition ${
               settings.soundEnabled
                 ? 'bg-slate-800/80 hover:bg-slate-750 border-slate-700/60 text-slate-300 hover:text-white'
                 : 'bg-rose-950/60 border-rose-800/80 text-rose-300 hover:text-rose-100'
@@ -168,7 +168,7 @@ export const NBackGame: React.FC = () => {
 
           <button
             onClick={handleTestSound}
-            className={`flex items-center gap-1 px-3 py-2 rounded-xl border text-xs sm:text-sm font-semibold transition active:scale-95 ${
+            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border text-xs sm:text-sm font-semibold transition active:scale-95 whitespace-nowrap ${
               isTestingSound
                 ? 'bg-cyan-500 text-white border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.6)] animate-pulse'
                 : 'bg-indigo-600/30 hover:bg-indigo-600/50 border-indigo-500/50 text-indigo-200 hover:text-white shadow-sm'
