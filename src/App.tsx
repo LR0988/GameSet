@@ -8,6 +8,8 @@ import { SnakeGame } from './games/snake/SnakeGame';
 import { sound } from './utils/sound';
 import { AuthProvider } from './context/AuthContext';
 
+import { UserAndGameBar } from './components/common/UserAndGameBar';
+
 export const AppContent: React.FC = () => {
   const [activeGame, setActiveGame] = useState<GameId>('nback');
   const [isMuted, setIsMuted] = useState<boolean>(sound.getMuted());
@@ -29,7 +31,13 @@ export const AppContent: React.FC = () => {
       />
 
       {/* Main Content Arena */}
-      <main className="flex-1 flex flex-col items-center justify-center py-6 px-4">
+      <main className="flex-1 flex flex-col items-center justify-start py-4 px-2 sm:px-4">
+        {/* Direct 1-Click User & Game Selection Strip */}
+        <UserAndGameBar
+          activeGame={activeGame}
+          onSelectGame={setActiveGame}
+        />
+
         {activeGame === 'nback' && <NBackGame />}
         {activeGame === 'stroop' && <StroopGame />}
         {activeGame === 'game2048' && <Game2048 />}

@@ -6,6 +6,7 @@ import confetti from 'canvas-confetti';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
 import { AnalyticsModal } from '../../components/analytics/AnalyticsModal';
+import { GameHistoryScoreSelector } from '../../components/common/GameHistoryScoreSelector';
 
 interface ColorItem {
   name: string;
@@ -118,6 +119,9 @@ export const StroopGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto py-2 px-4 space-y-6">
+      {/* Historical Score Selector Above Game */}
+      <GameHistoryScoreSelector gameId="stroop" currentScore={score} />
+
       {/* Header */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel">
         <div className="flex items-center gap-3">

@@ -6,6 +6,7 @@ import confetti from 'canvas-confetti';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
 import { AnalyticsModal } from '../../components/analytics/AnalyticsModal';
+import { GameHistoryScoreSelector } from '../../components/common/GameHistoryScoreSelector';
 
 type Grid = number[][];
 
@@ -247,6 +248,9 @@ export const Game2048: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center w-full max-w-lg mx-auto py-2 px-4 space-y-5">
+      {/* Historical Score Selector Above Game */}
+      <GameHistoryScoreSelector gameId="game2048" currentScore={score} />
+
       {/* Top Header */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel">
         <div>

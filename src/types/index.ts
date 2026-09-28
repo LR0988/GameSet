@@ -73,4 +73,7 @@ export interface GameHistoryEntry {
   date: string;
   timestamp: number;
   details?: Record<string, any>;
+  userId?: string;
+  userName?: string;
+  isSample?: boolean;
 }

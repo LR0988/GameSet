@@ -5,6 +5,7 @@ import { Trophy, Play, RotateCcw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Tre
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
 import { AnalyticsModal } from '../../components/analytics/AnalyticsModal';
+import { GameHistoryScoreSelector } from '../../components/common/GameHistoryScoreSelector';
 
 type Point = { x: number; y: number };
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
@@ -157,6 +158,9 @@ export const SnakeGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center w-full max-w-lg mx-auto py-2 px-4 space-y-4">
+      {/* Historical Score Selector Above Game */}
+      <GameHistoryScoreSelector gameId="snake" currentScore={score} />
+
       {/* Top Bar */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel">
         <div>

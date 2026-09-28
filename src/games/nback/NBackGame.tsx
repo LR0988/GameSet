@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
 import { sound } from '../../utils/sound';
 import { AnalyticsModal } from '../../components/analytics/AnalyticsModal';
+import { GameHistoryScoreSelector } from '../../components/common/GameHistoryScoreSelector';
 
 export const NBackGame: React.FC = () => {
   const { user, displayName } = useAuth();
@@ -92,6 +93,9 @@ export const NBackGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto py-2 px-4 space-y-5">
+      {/* Historical Score Selector Above Game */}
+      <GameHistoryScoreSelector gameId="nback" currentScore={sessionStats?.score} />
+
       {/* Top Header Bar */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel shadow-lg">
         <div className="flex items-center gap-3">

@@ -62,10 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // If user hasn't explicitly picked a user or dismissed modal in this session, show the login screen first!
-      if (!sessionEntered) {
-        setShowAuthModal(true);
-      }
+      // Do not auto-block screen with modal. Users pick directly on top bar!
+      setShowAuthModal(false);
 
       setLoading(false);
     });
