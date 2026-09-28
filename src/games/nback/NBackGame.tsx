@@ -6,11 +6,12 @@ import { NBackStats } from './NBackStats';
 import { NBackSettingsModal } from './NBackSettingsModal';
 import { NBackTutorialModal } from './NBackTutorialModal';
 import { storage } from '../../utils/storage';
-import { Sliders, HelpCircle, Trophy, Sparkles, Brain, History, Volume2 } from 'lucide-react';
+import { Sliders, HelpCircle, Trophy, Sparkles, Brain, History, Volume2, TrendingUp } from 'lucide-react';
 import { NBackSessionStats } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
 import { sound } from '../../utils/sound';
+import { AnalyticsModal } from '../../components/analytics/AnalyticsModal';
 
 export const NBackGame: React.FC = () => {
   const { user, displayName } = useAuth();
@@ -18,6 +19,7 @@ export const NBackGame: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const [history, setHistory] = useState<NBackSessionStats[]>([]);
   const [highScore, setHighScore] = useState<number>(0);
   const [soundTested, setSoundTested] = useState(false);
@@ -144,6 +146,14 @@ export const NBackGame: React.FC = () => {
           >
             <HelpCircle className="w-4 h-4 text-indigo-400" />
             <span>玩法教學</span>
+          </button>
+
+          <button
+            onClick={() => setIsAnalyticsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/50 text-indigo-300 text-xs sm:text-sm font-semibold transition hover:text-white"
+          >
+            <TrendingUp className="w-4 h-4 text-indigo-400" />
+            <span>分數趨勢</span>
           </button>
 
           <button
@@ -284,6 +294,13 @@ export const NBackGame: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Analytics Modal */}
+      <AnalyticsModal
+        isOpen={isAnalyticsOpen}
+        onClose={() => setIsAnalyticsOpen(false)}
+        initialGameId="nback"
+      />
     </div>
   );
 };

@@ -1,15 +1,22 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, db } from '../utils/supabase';
+import { storage } from '../utils/storage';
+import { SavedUser } from '../types';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   displayName: string;
+  savedUsers: SavedUser[];
+  showAuthModal: boolean;
+  setShowAuthModal: (show: boolean) => void;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: Error | null }>;
-  quickPlay: (nickname: string) => Promise<{ error: Error | null }>;
+  quickPlay: (nickname: string) => Promise<{ error: Error | null; user?: SavedUser }>;
+  loginAsSavedUser: (savedUser: SavedUser) => Promise<void>;
+  removeSavedUser: (id: string) => void;
   signOut: () => Promise<void>;
   updateDisplayName: (name: string) => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
@@ -22,15 +29,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [displayName, setDisplayName] = useState<string>('');
+  const [savedUsers, setSavedUsers] = useState<SavedUser[]>([]);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+
+  // Refresh saved users from storage
+  const refreshSavedUsers = useCallback(() => {
+    const list = storage.getSavedUsers();
+    setSavedUsers(list);
+    return list;
+  }, []);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const metaName = session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || '';
+    const users = refreshSavedUsers();
+
+    // 1. Check Supabase session first
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      if (currentSession?.user) {
+        setSession(currentSession);
+        setUser(currentSession.user);
+        const metaName = currentSession.user.user_metadata?.display_name || currentSession.user.email?.split('@')[0] || '會員';
         setDisplayName(metaName);
+        setShowAuthModal(false);
+      } else {
+        // 2. Check if a local saved user was active
+        const activeId = storage.getActiveUserId();
+        const activeUser = users.find(u => u.id === activeId);
+
+        if (activeUser) {
+          // Restore active saved profile
+          loginAsSavedUser(activeUser);
+          setShowAuthModal(false);
+        } else {
+          // No active user: Open login screen immediately as requested!
+          setShowAuthModal(true);
+        }
       }
       setLoading(false);
     });
@@ -40,12 +72,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      setUser(session?.user ?? null);
       if (session?.user) {
+        setUser(session.user);
         const metaName = session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || '';
         setDisplayName(metaName);
-      } else {
-        setDisplayName('');
       }
       setLoading(false);
     });
@@ -53,7 +83,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [refreshSavedUsers]);
+
+  // Log in as a saved free user profile
+  const loginAsSavedUser = async (savedUser: SavedUser) => {
+    const userObj: User = {
+      id: savedUser.id,
+      email: savedUser.email,
+      app_metadata: {},
+      user_metadata: {
+        display_name: savedUser.displayName,
+        is_guest: savedUser.isGuest,
+        avatar_color: savedUser.avatarColor,
+      },
+      aud: 'authenticated',
+      created_at: new Date(savedUser.lastLoginAt).toISOString(),
+    } as User;
+
+    setUser(userObj);
+    setDisplayName(savedUser.displayName);
+    storage.setActiveUserId(savedUser.id);
+
+    // Update last login timestamp
+    const updated = { ...savedUser, lastLoginAt: Date.now() };
+    storage.saveUser(updated);
+    refreshSavedUsers();
+  };
+
+  const removeSavedUser = (id: string) => {
+    storage.removeSavedUser(id);
+    refreshSavedUsers();
+    if (user?.id === id) {
+      setUser(null);
+      setDisplayName('');
+    }
+  };
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -65,6 +129,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user) {
         const name = data.user.user_metadata?.display_name || email.split('@')[0];
         setDisplayName(name);
+
+        // Record into saved users list
+        const profile: SavedUser = {
+          id: data.user.id,
+          displayName: name,
+          email: data.user.email || email,
+          isGuest: false,
+          avatarColor: storage.getRandomAvatarGradient(),
+          lastLoginAt: Date.now(),
+        };
+        storage.saveUser(profile);
+        refreshSavedUsers();
       }
       return { error: null };
     } catch (err: unknown) {
@@ -85,10 +161,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (error) return { error };
       if (data.user) {
-        setDisplayName(name || email.split('@')[0]);
-        await db.saveProfile(data.user, name);
+        const cleanName = name || email.split('@')[0];
+        setDisplayName(cleanName);
+        await db.saveProfile(data.user, cleanName);
 
-        // Immediate login attempt to activate session without waiting for email verification
+        // Immediate login attempt to activate session
         if (!data.session) {
           const res = await supabase.auth.signInWithPassword({ email, password });
           if (res.data.session) {
@@ -96,6 +173,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(res.data.user);
           }
         }
+
+        const profile: SavedUser = {
+          id: data.user.id,
+          displayName: cleanName,
+          email: data.user.email || email,
+          isGuest: false,
+          avatarColor: storage.getRandomAvatarGradient(),
+          lastLoginAt: Date.now(),
+        };
+        storage.saveUser(profile);
+        refreshSavedUsers();
       }
       return { error: null };
     } catch (err: unknown) {
@@ -109,31 +197,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const randomId = Math.random().toString(36).substring(2, 9);
       const guestEmail = `player_${randomId}@gameset.local`;
       const guestPass = `pass_${randomId}_${Date.now()}`;
+      const avatarColor = storage.getRandomAvatarGradient();
 
-      const { data, error } = await supabase.auth.signUp({
-        email: guestEmail,
-        password: guestPass,
-        options: {
-          data: { display_name: cleanNick },
-        },
-      });
+      let createdUser: User | null = null;
 
-      if (!error && data.user) {
-        setDisplayName(cleanNick);
-        setUser(data.user);
-        if (data.session) setSession(data.session);
-        await db.saveProfile(data.user, cleanNick);
-      } else {
-        setDisplayName(cleanNick);
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: guestEmail,
+          password: guestPass,
+          options: {
+            data: { display_name: cleanNick, is_guest: true },
+          },
+        });
+        if (!error && data.user) {
+          createdUser = data.user;
+          if (data.session) setSession(data.session);
+          await db.saveProfile(data.user, cleanNick);
+        }
+      } catch {
+        // Fallback to local user
       }
-      return { error: null };
+
+      const userId = createdUser?.id || `guest_${randomId}`;
+
+      const savedUser: SavedUser = {
+        id: userId,
+        displayName: cleanNick,
+        email: guestEmail,
+        isGuest: true,
+        avatarColor,
+        lastLoginAt: Date.now(),
+      };
+
+      storage.saveUser(savedUser);
+      refreshSavedUsers();
+      await loginAsSavedUser(savedUser);
+
+      return { error: null, user: savedUser };
     } catch (err: unknown) {
       return { error: err as Error };
     }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Ignore
+    }
+    storage.setActiveUserId(null);
     setUser(null);
     setSession(null);
     setDisplayName('');
@@ -148,6 +260,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user) {
         setDisplayName(name);
         await db.saveProfile(data.user, name);
+      }
+      if (user) {
+        const saved = storage.getSavedUsers().find(u => u.id === user.id);
+        if (saved) {
+          storage.saveUser({ ...saved, displayName: name });
+          refreshSavedUsers();
+        }
       }
       return { error: null };
     } catch (err: unknown) {
@@ -171,9 +290,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session,
         loading,
         displayName,
+        savedUsers,
+        showAuthModal,
+        setShowAuthModal,
         signIn,
         signUp,
         quickPlay,
+        loginAsSavedUser,
+        removeSavedUser,
         signOut,
         updateDisplayName,
         resetPassword,

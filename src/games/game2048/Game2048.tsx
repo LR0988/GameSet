@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { sound } from '../../utils/sound';
 import { storage } from '../../utils/storage';
-import { Trophy, RotateCcw } from 'lucide-react';
+import { Trophy, RotateCcw, TrendingUp } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
+import { AnalyticsModal } from '../../components/analytics/AnalyticsModal';
 
 type Grid = number[][];
 
@@ -34,6 +35,7 @@ export const Game2048: React.FC = () => {
   const [highScore, setHighScore] = useState(storage.getHighScore('2048'));
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -178,6 +180,19 @@ export const Game2048: React.FC = () => {
       if (!canMove) {
         setGameOver(true);
         sound.playGameOver();
+        let maxTile = 0;
+        for (let r = 0; r < 4; r++) {
+          for (let c = 0; c < 4; c++) {
+            if (updatedGrid[r][c] > maxTile) maxTile = updatedGrid[r][c];
+          }
+        }
+        if (newScore > 0) {
+          storage.saveGameRecord({
+            gameId: 'game2048',
+            score: newScore,
+            details: { maxTile },
+          });
+        }
         if (user && newScore > 0) {
           db.saveScore(user.id, user.email || '', displayName || '玩家', 'game2048', newScore);
         }
@@ -233,18 +248,26 @@ export const Game2048: React.FC = () => {
   return (
     <div className="flex flex-col items-center w-full max-w-lg mx-auto py-2 px-4 space-y-5">
       {/* Top Header */}
-      <div className="w-full flex items-center justify-between p-4 rounded-2xl glass-panel">
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel">
         <div>
           <h2 className="text-2xl font-black text-amber-400">2048</h2>
           <p className="text-xs text-slate-400">使用方向鍵或滑動合併相同數字</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-center min-w-[70px]">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsAnalyticsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition"
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+            <span>趨勢分析</span>
+          </button>
+
+          <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-center min-w-[65px]">
             <div className="text-[10px] uppercase text-slate-400 font-bold">分數</div>
             <div className="text-lg font-black text-white">{score}</div>
           </div>
-          <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-center min-w-[70px]">
+          <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-center min-w-[65px]">
             <div className="text-[10px] uppercase text-slate-400 font-bold">最佳</div>
             <div className="text-lg font-black text-amber-400">{highScore}</div>
           </div>
@@ -302,6 +325,12 @@ export const Game2048: React.FC = () => {
           重置開局
         </button>
       </div>
+
+      <AnalyticsModal
+        isOpen={isAnalyticsOpen}
+        onClose={() => setIsAnalyticsOpen(false)}
+        initialGameId="game2048"
+      />
     </div>
   );
 };

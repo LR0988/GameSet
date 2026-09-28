@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { sound } from '../../utils/sound';
 import { storage } from '../../utils/storage';
-import { Trophy, Play, RotateCcw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Trophy, Play, RotateCcw, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
+import { AnalyticsModal } from '../../components/analytics/AnalyticsModal';
 
 type Point = { x: number; y: number };
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
@@ -23,6 +24,7 @@ export const SnakeGame: React.FC = () => {
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
   const [highScore, setHighScore] = useState<number>(storage.getHighScore('snake'));
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState<boolean>(false);
 
   const directionRef = useRef<Direction>('UP');
   directionRef.current = direction;
@@ -60,10 +62,17 @@ export const SnakeGame: React.FC = () => {
     setIsPlaying(false);
     setIsGameOver(true);
     sound.playGameOver();
+    if (score > 0) {
+      storage.saveGameRecord({
+        gameId: 'snake',
+        score,
+        details: { length: snake.length },
+      });
+    }
     if (user && score > 0) {
       db.saveScore(user.id, user.email || '', displayName || '玩家', 'snake', score);
     }
-  }, [user, displayName, score]);
+  }, [user, displayName, score, snake.length]);
 
   // Game loop
   useEffect(() => {
@@ -149,17 +158,25 @@ export const SnakeGame: React.FC = () => {
   return (
     <div className="flex flex-col items-center w-full max-w-lg mx-auto py-2 px-4 space-y-4">
       {/* Top Bar */}
-      <div className="w-full flex items-center justify-between p-4 rounded-2xl glass-panel">
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel">
         <div>
           <h2 className="text-xl font-black text-emerald-400">復古經典貪食蛇 (Snake)</h2>
           <p className="text-xs text-slate-400">使用方向鍵或虛擬手把操控蛇吃蘋果</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-slate-800 border border-slate-700 text-center min-w-[60px]">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsAnalyticsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition"
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
+            <span>趨勢分析</span>
+          </button>
+
+          <div className="p-2 rounded-xl bg-slate-800 border border-slate-700 text-center min-w-[55px]">
             <div className="text-[10px] uppercase text-slate-400 font-bold">分數</div>
             <div className="text-base font-black text-white">{score}</div>
           </div>
-          <div className="p-2 rounded-xl bg-slate-800 border border-slate-700 text-center min-w-[60px]">
+          <div className="p-2 rounded-xl bg-slate-800 border border-slate-700 text-center min-w-[55px]">
             <div className="text-[10px] uppercase text-slate-400 font-bold">最佳</div>
             <div className="text-base font-black text-emerald-400">{highScore}</div>
           </div>
@@ -244,6 +261,12 @@ export const SnakeGame: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <AnalyticsModal
+        isOpen={isAnalyticsOpen}
+        onClose={() => setIsAnalyticsOpen(false)}
+        initialGameId="snake"
+      />
     </div>
   );
 };

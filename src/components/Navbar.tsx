@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { GameId } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Brain, Zap, Grid3X3, Gamepad2, Volume2, VolumeX, User, LogIn, Trophy } from 'lucide-react';
+import { Brain, Zap, Grid3X3, Gamepad2, Volume2, VolumeX, User, LogIn, Trophy, TrendingUp } from 'lucide-react';
 import { AuthModal } from './auth/AuthModal';
 import { UserProfileModal } from './auth/UserProfileModal';
 import { LeaderboardModal } from './leaderboard/LeaderboardModal';
+import { AnalyticsModal } from './analytics/AnalyticsModal';
 
 interface NavbarProps {
   activeGame: GameId;
@@ -19,10 +20,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   isMuted,
   onToggleMute,
 }) => {
-  const { user, displayName } = useAuth();
+  const { user, displayName, showAuthModal, setShowAuthModal } = useAuth();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
   const games: { id: GameId; label: string; icon: React.ReactNode; tag?: string }[] = [
     { id: 'nback', label: 'N-Back 記憶訓練', icon: <Brain className="w-4 h-4" />, tag: '大腦核心' },
@@ -76,6 +78,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Global Controls & Links */}
           <div className="flex items-center gap-2">
+            {/* Analytics button */}
+            <button
+              onClick={() => setIsAnalyticsOpen(true)}
+              title="腦力分數趨勢與統計分析"
+              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-indigo-400 hover:bg-slate-850 transition flex items-center gap-1.5 text-xs font-semibold"
+            >
+              <TrendingUp className="w-4 h-4 text-indigo-400" />
+              <span className="hidden sm:inline text-slate-300">統計分析</span>
+            </button>
+
             {/* Leaderboard button */}
             <button
               onClick={() => setIsLeaderboardOpen(true)}
@@ -153,12 +165,30 @@ export const Navbar: React.FC<NavbarProps> = ({
       </header>
 
       {/* Modals */}
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
-      <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <AuthModal
+        isOpen={isAuthOpen || showAuthModal}
+        onClose={() => {
+          setIsAuthOpen(false);
+          setShowAuthModal(false);
+        }}
+      />
+      <UserProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        onSwitchUser={() => {
+          setIsProfileOpen(false);
+          setIsAuthOpen(true);
+        }}
+      />
       <LeaderboardModal
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
         defaultGame={activeGame}
+      />
+      <AnalyticsModal
+        isOpen={isAnalyticsOpen}
+        onClose={() => setIsAnalyticsOpen(false)}
+        initialGameId={activeGame}
       />
     </>
   );

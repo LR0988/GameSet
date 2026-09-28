@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { sound } from '../../utils/sound';
 import { storage } from '../../utils/storage';
-import { Sparkles, Trophy, Play, RotateCcw, Zap } from 'lucide-react';
+import { Sparkles, Trophy, Play, RotateCcw, Zap, TrendingUp } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
+import { AnalyticsModal } from '../../components/analytics/AnalyticsModal';
 
 interface ColorItem {
   name: string;
@@ -29,6 +30,7 @@ export const StroopGame: React.FC = () => {
   const [highScore, setHighScore] = useState(storage.getHighScore('stroop'));
   const [streak, setStreak] = useState(0);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
   const timerRef = useRef<number | null>(null);
 
@@ -90,6 +92,13 @@ export const StroopGame: React.FC = () => {
   useEffect(() => {
     if (isGameOver) {
       storage.saveHighScore('stroop', score);
+      if (score > 0) {
+        storage.saveGameRecord({
+          gameId: 'stroop',
+          score,
+          details: { streak },
+        });
+      }
       const hs = storage.getHighScore('stroop');
       setHighScore(hs);
       if (score >= hs && score > 0) {
@@ -99,7 +108,7 @@ export const StroopGame: React.FC = () => {
         db.saveScore(user.id, user.email || '', displayName || '玩家', 'stroop', score);
       }
     }
-  }, [isGameOver, score, user, displayName]);
+  }, [isGameOver, score, streak, user, displayName]);
 
   useEffect(() => {
     return () => {
@@ -110,7 +119,7 @@ export const StroopGame: React.FC = () => {
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto py-2 px-4 space-y-6">
       {/* Header */}
-      <div className="w-full flex items-center justify-between p-4 rounded-2xl glass-panel">
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 text-white shadow-md">
             <Zap className="w-6 h-6" />
@@ -121,9 +130,19 @@ export const StroopGame: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs">
-          <Trophy className="w-4 h-4 text-amber-400" />
-          <span>最高分：<strong className="text-amber-400">{highScore}</strong></span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsAnalyticsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition"
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+            <span>趨勢分析</span>
+          </button>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs">
+            <Trophy className="w-4 h-4 text-amber-400" />
+            <span>最高分：<strong className="text-amber-400">{highScore}</strong></span>
+          </div>
         </div>
       </div>
 
@@ -209,6 +228,12 @@ export const StroopGame: React.FC = () => {
           </div>
         )}
       </div>
+
+      <AnalyticsModal
+        isOpen={isAnalyticsOpen}
+        onClose={() => setIsAnalyticsOpen(false)}
+        initialGameId="stroop"
+      />
     </div>
   );
 };

@@ -54,3 +54,23 @@ export interface NBackSessionStats {
   overallAccuracy: number;
   score: number;
 }
+
+export interface SavedUser {
+  id: string;
+  displayName: string;
+  email: string;
+  isGuest: boolean;
+  avatarColor: string;
+  lastLoginAt: number;
+  totalGamesPlayed?: number;
+  highScores?: Partial<Record<GameId, number>>;
+}
+
+export interface GameHistoryEntry {
+  id: string;
+  gameId: GameId;
+  score: number;
+  date: string;
+  timestamp: number;
+  details?: Record<string, any>;
+}

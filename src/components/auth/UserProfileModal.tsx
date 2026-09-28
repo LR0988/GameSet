@@ -7,9 +7,10 @@ import { sound } from '../../utils/sound';
 interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSwitchUser?: () => void;
 }
 
-export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) => {
+export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, onSwitchUser }) => {
   const { user, displayName, updateDisplayName, signOut } = useAuth();
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(displayName);
@@ -179,14 +180,26 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-800 bg-slate-850 flex items-center justify-between">
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-rose-300 text-xs font-semibold transition"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>登出帳號</span>
-          </button>
+        <div className="p-4 border-t border-slate-800 bg-slate-850 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-rose-300 text-xs font-semibold transition"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>登出</span>
+            </button>
+
+            {onSwitchUser && (
+              <button
+                onClick={onSwitchUser}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-indigo-300 text-xs font-semibold transition"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>切換帳號</span>
+              </button>
+            )}
+          </div>
 
           <button
             onClick={onClose}
