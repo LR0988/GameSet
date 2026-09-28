@@ -286,7 +286,8 @@ class SoundEffects {
         window.speechSynthesis.cancel();
         window.speechSynthesis.resume();
 
-        const utterance = new SpeechSynthesisUtterance(letter);
+        // Use lowercase so speech synthesis does not pronounce "capital C", "capital H", etc.
+        const utterance = new SpeechSynthesisUtterance(letter.toLowerCase());
         utterance.lang = 'en-US';
         utterance.volume = 1.0;
         utterance.rate = 0.95;
