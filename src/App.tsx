@@ -12,6 +12,7 @@ import { InitialUserPicker } from './components/auth/InitialUserPicker';
 export const AppContent: React.FC = () => {
   const [activeGame, setActiveGame] = useState<GameId>('nback');
   const [isMuted, setIsMuted] = useState<boolean>(sound.getMuted());
+  const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);
   const { user, loginAsSavedUser } = useAuth();
 
   const [hasEntered, setHasEntered] = useState<boolean>(() => {
@@ -50,23 +51,27 @@ export const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
-      {/* Top Navbar with Auth & Leaderboard */}
+      {/* Top Navbar with Auth, Leaderboard & Game Tabs */}
       <Navbar
         activeGame={activeGame}
-        onSelectGame={setActiveGame}
+        onSelectGame={(g) => {
+          setHeaderActions(null);
+          setActiveGame(g);
+        }}
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
+        actions={headerActions}
       />
 
       {/* Main Content Arena */}
-      <main className="flex-1 flex flex-col items-center justify-center py-4 px-2 sm:px-4">
+      <main className="flex-1 flex flex-col items-center justify-start py-2 sm:py-3 px-2 sm:px-4">
         {!hasEntered ? (
           /* 1. Only shown at initial login/entry: 1-click user selection */
           <InitialUserPicker onEnter={handleInitialEnter} />
         ) : (
           /* 2. Direct game view (no redundant body game selector, full clean focus) */
           <>
-            {activeGame === 'nback' && <NBackGame />}
+            {activeGame === 'nback' && <NBackGame setHeaderActions={setHeaderActions} />}
             {activeGame === 'stroop' && <StroopGame />}
             {activeGame === 'game2048' && <Game2048 />}
             {activeGame === 'snake' && <SnakeGame />}

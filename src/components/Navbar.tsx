@@ -9,70 +9,72 @@ import { LeaderboardModal } from './leaderboard/LeaderboardModal';
 interface NavbarProps {
   activeGame: GameId;
   onSelectGame: (game: GameId) => void;
-  isMuted: boolean;
-  onToggleMute: () => void;
+  isMuted?: boolean;
+  onToggleMute?: () => void;
+  actions?: React.ReactNode;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeGame,
   onSelectGame,
-  isMuted,
-  onToggleMute,
+  actions,
 }) => {
   const { user, displayName, showAuthModal, setShowAuthModal } = useAuth();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
 
-  const games: { id: GameId; label: string; icon: React.ReactNode; tag?: string }[] = [
-    { id: 'nback', label: 'N-Back 記憶訓練', icon: <Brain className="w-4 h-4" />, tag: '大腦核心' },
-    { id: 'stroop', label: '斯特魯普測驗', icon: <Zap className="w-4 h-4" /> },
+  const games: { id: GameId; label: string; icon: React.ReactNode }[] = [
+    { id: 'nback', label: 'N-Back', icon: <Brain className="w-4 h-4" /> },
+    { id: 'stroop', label: '斯特魯普', icon: <Zap className="w-4 h-4" /> },
     { id: 'game2048', label: '2048', icon: <Grid3X3 className="w-4 h-4" /> },
-    { id: 'snake', label: '經典貪食蛇', icon: <Gamepad2 className="w-4 h-4" /> },
+    { id: 'snake', label: '貪食蛇', icon: <Gamepad2 className="w-4 h-4" /> },
   ];
 
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           {/* Logo / Brand */}
-          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => onSelectGame('nback')}>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-500/20 text-base">
+          <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => onSelectGame('nback')}>
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-500/20 text-sm">
               GS
             </div>
             <div>
-              <h1 className="font-extrabold text-base sm:text-lg text-white tracking-wide leading-none flex items-center gap-1.5">
+              <h1 className="font-extrabold text-sm sm:text-base text-white tracking-wide leading-none flex items-center gap-1.5">
                 Game Set
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  腦力遊戲集
+                  腦力
                 </span>
               </h1>
-              <p className="text-[10px] text-slate-400 leading-tight">N-Back Brain Training & Mini Games</p>
             </div>
           </div>
 
-          {/* Game Switcher Tabs */}
-          <nav className="hidden md:flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
-            {games.map(g => (
-              <button
-                key={g.id}
-                onClick={() => onSelectGame(g.id)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-                  activeGame === g.id
-                    ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                }`}
-              >
-                {g.icon}
-                <span>{g.label}</span>
-                {g.tag && (
-                  <span className="text-[9px] px-1 rounded bg-indigo-400/30 text-indigo-200">
-                    {g.tag}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
+          {/* Game Switcher Tabs & Actions (Desktop) */}
+          <div className="hidden md:flex items-center gap-2 min-w-0">
+            <nav className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+              {games.map(g => (
+                <button
+                  key={g.id}
+                  onClick={() => onSelectGame(g.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+                    activeGame === g.id
+                      ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  }`}
+                >
+                  {g.icon}
+                  <span>{g.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            {actions && (
+              <div className="flex items-center gap-1 pl-1">
+                {actions}
+              </div>
+            )}
+          </div>
 
           {/* Global Controls & Links */}
           <div className="flex items-center gap-2">
@@ -126,22 +128,30 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Mobile Game Switcher Bar */}
-        <div className="flex md:hidden overflow-x-auto px-4 py-2 border-t border-slate-800/60 gap-1.5 bg-slate-900/50">
-          {games.map(g => (
-            <button
-              key={g.id}
-              onClick={() => onSelectGame(g.id)}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
-                activeGame === g.id
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200 bg-slate-800/40'
-              }`}
-            >
-              {g.icon}
-              <span>{g.label}</span>
-            </button>
-          ))}
+        {/* Mobile Game Switcher Bar & Actions */}
+        <div className="flex md:hidden items-center justify-between overflow-x-auto px-3 py-1.5 border-t border-slate-800/60 gap-2 bg-slate-900/60">
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {games.map(g => (
+              <button
+                key={g.id}
+                onClick={() => onSelectGame(g.id)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
+                  activeGame === g.id
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-400 hover:text-slate-200 bg-slate-800/40'
+                }`}
+              >
+                {g.icon}
+                <span>{g.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {actions && (
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {actions}
+            </div>
+          )}
         </div>
       </header>
 
