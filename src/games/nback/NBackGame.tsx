@@ -12,7 +12,6 @@ import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
 import { sound } from '../../utils/sound';
 import { AnalyticsModal } from '../../components/analytics/AnalyticsModal';
-import { GameHistoryScoreSelector } from '../../components/common/GameHistoryScoreSelector';
 
 export const NBackGame: React.FC = () => {
   const { user, displayName } = useAuth();
@@ -114,7 +113,20 @@ export const NBackGame: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Sound Test Button */}
+          {/* Quick Sound Mute/Unmute (聲音開關) */}
+          <button
+            onClick={handleToggleSound}
+            className={`p-2 rounded-xl border text-xs sm:text-sm font-medium transition ${
+              settings.soundEnabled
+                ? 'bg-slate-800/80 hover:bg-slate-750 border-slate-700/60 text-slate-300 hover:text-white'
+                : 'bg-rose-950/60 border-rose-800/80 text-rose-300 hover:text-rose-100'
+            }`}
+            title={settings.soundEnabled ? '音效開啟 (點擊靜音)' : '音效已靜音 (點擊開啟)'}
+          >
+            {settings.soundEnabled ? <Volume2 className="w-4 h-4 text-indigo-400" /> : <span className="text-rose-400 text-xs font-bold">🔇 靜音</span>}
+          </button>
+
+          {/* Sound Test Button (放在聲音開關的右邊) */}
           <button
             onClick={handleTestSound}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs sm:text-sm font-semibold transition active:scale-95 ${
@@ -126,19 +138,6 @@ export const NBackGame: React.FC = () => {
           >
             <Volume2 className={`w-4 h-4 text-cyan-400 ${isTestingSound ? 'animate-bounce' : ''}`} />
             <span>{isTestingSound ? '播放測試中...' : soundTested ? '🔊 測試聲音 (已播)' : '🔊 測試聲音'}</span>
-          </button>
-
-          {/* Quick Sound Mute/Unmute */}
-          <button
-            onClick={handleToggleSound}
-            className={`p-2 rounded-xl border text-xs sm:text-sm font-medium transition ${
-              settings.soundEnabled
-                ? 'bg-slate-800/80 hover:bg-slate-750 border-slate-700/60 text-slate-300 hover:text-white'
-                : 'bg-rose-950/60 border-rose-800/80 text-rose-300 hover:text-rose-100'
-            }`}
-            title={settings.soundEnabled ? '音效開啟 (點擊靜音)' : '音效已靜音 (點擊開啟)'}
-          >
-            {settings.soundEnabled ? <Volume2 className="w-4 h-4 text-indigo-400" /> : <span className="text-rose-400 text-xs font-bold">🔇 靜音</span>}
           </button>
 
           <button
@@ -156,9 +155,6 @@ export const NBackGame: React.FC = () => {
             <TrendingUp className="w-4 h-4 text-indigo-400" />
             <span>趨勢</span>
           </button>
-
-          {/* Historical Scores Small Icon */}
-          <GameHistoryScoreSelector gameId="nback" currentScore={sessionStats?.score} />
 
           <button
             onClick={() => setIsSettingsOpen(true)}

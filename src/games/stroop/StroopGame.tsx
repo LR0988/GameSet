@@ -6,7 +6,6 @@ import confetti from 'canvas-confetti';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
 import { AnalyticsModal } from '../../components/analytics/AnalyticsModal';
-import { GameHistoryScoreSelector } from '../../components/common/GameHistoryScoreSelector';
 
 interface ColorItem {
   name: string;
@@ -132,9 +131,6 @@ export const StroopGame: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Historical Scores Small Icon */}
-          <GameHistoryScoreSelector gameId="stroop" currentScore={score} />
-
           <button
             onClick={() => setIsAnalyticsOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition"
