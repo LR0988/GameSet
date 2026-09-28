@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { X, Mail, Lock, User, LogIn, UserPlus, KeyRound, Zap, Sparkles, Trash2, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { X, Mail, Lock, User, LogIn, UserPlus, KeyRound, Zap, Sparkles, Trash2, ArrowRight, CheckCircle2, Check } from 'lucide-react';
 import { sound } from '../../utils/sound';
 import { SavedUser } from '../../types';
 
@@ -21,7 +21,7 @@ const RANDOM_NICKNAMES = [
 ];
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { signIn, signUp, quickPlay, savedUsers, loginAsSavedUser, removeSavedUser, resetPassword } = useAuth();
+  const { user, signIn, signUp, quickPlay, savedUsers, loginAsSavedUser, removeSavedUser, resetPassword } = useAuth();
   const [activeTab, setActiveTab] = useState<'profiles' | 'email_login' | 'email_signup' | 'forgot'>('profiles');
   const [quickNick, setQuickNick] = useState('');
   const [email, setEmail] = useState('');
@@ -39,10 +39,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     sound.playLevelUp();
     setSuccessMsg(`歡迎回來，${savedUser.displayName}！`);
     await loginAsSavedUser(savedUser);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('gameset_user_entered', 'true');
+    }
     setTimeout(() => {
       setSuccessMsg('');
       onClose();
-    }, 600);
+    }, 500);
   };
 
   // Create new quick guest
@@ -62,10 +65,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     } else {
       sound.playLevelUp();
       setSuccessMsg(`玩家「${nick}」已就緒！`);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('gameset_user_entered', 'true');
+      }
       setTimeout(() => {
         setSuccessMsg('');
         onClose();
-      }, 700);
+      }, 600);
     }
   };
 
@@ -86,6 +92,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       } else {
         sound.playLevelUp();
         setSuccessMsg('登入成功！');
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('gameset_user_entered', 'true');
+        }
         setTimeout(() => onClose(), 600);
       }
     } else if (activeTab === 'email_signup') {
@@ -102,6 +111,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       } else {
         sound.playLevelUp();
         setSuccessMsg('註冊成功！已自動登入');
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('gameset_user_entered', 'true');
+        }
         setTimeout(() => onClose(), 700);
       }
     } else if (activeTab === 'forgot') {
@@ -122,21 +134,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="w-full max-w-lg bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+      <div className="w-full max-w-lg bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
         {/* Modal Top Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/80">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-white font-black text-sm shadow-md shadow-indigo-500/30">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-white font-black text-base shadow-lg shadow-indigo-500/30">
               GS
             </div>
             <div>
-              <h3 className="font-extrabold text-base sm:text-lg text-white">歡迎來到 Game Set 腦力遊戲集</h3>
-              <p className="text-xs text-slate-400">請選取現有使用者或快速建立身份</p>
+              <h3 className="font-black text-base sm:text-lg text-white">歡迎來到 Game Set 腦力遊戲集</h3>
+              <p className="text-xs text-slate-400">請點選下方使用者直接登入，或建立新玩家</p>
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem('gameset_user_entered', 'true');
+              }
+              onClose();
+            }}
             className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
             title="關閉"
           >
@@ -159,60 +176,77 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         )}
 
         <div className="p-6 overflow-y-auto space-y-6">
-          {/* Section 1: Previous Free Users (History Accounts) */}
-          {savedUsers.length > 0 && activeTab === 'profiles' && (
+          {/* Section 1: Previous Free Users / Select to Log In Directly */}
+          {activeTab === 'profiles' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-bold text-white">
+                <div className="flex items-center gap-2 text-sm font-black text-white">
                   <User className="w-4 h-4 text-indigo-400" />
-                  <span>歷史免費玩家帳號（點擊直接登入）</span>
+                  <span>點選使用者立即登入（免密碼）：</span>
                 </div>
-                <span className="text-[11px] text-slate-400">共 {savedUsers.length} 位</span>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  {savedUsers.length} 位玩家
+                </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
-                {savedUsers.map(u => (
-                  <div
-                    key={u.id}
-                    onClick={() => handleDirectLogin(u)}
-                    className="group relative flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 hover:bg-indigo-950/60 border border-slate-700/60 hover:border-indigo-500/80 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-indigo-500/10 active:scale-98"
-                  >
-                    <div className="flex items-center gap-2.5 overflow-hidden">
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${u.avatarColor || 'from-indigo-500 to-purple-600'} text-white font-extrabold text-sm flex items-center justify-center flex-shrink-0 shadow-md`}>
-                        {u.displayName[0]?.toUpperCase() || 'U'}
-                      </div>
-                      <div className="overflow-hidden">
-                        <div className="font-bold text-sm text-white group-hover:text-indigo-200 truncate flex items-center gap-1.5">
-                          <span>{u.displayName}</span>
-                          {u.isGuest && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-300 font-normal">
-                              訪客
-                            </span>
-                          )}
+              {/* User Selection Cards Grid */}
+              <div className="grid grid-cols-1 gap-2.5 max-h-64 overflow-y-auto pr-1">
+                {savedUsers.map(u => {
+                  const isCurrent = user?.id === u.id;
+                  return (
+                    <div
+                      key={u.id}
+                      onClick={() => handleDirectLogin(u)}
+                      className={`group relative flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all duration-200 cursor-pointer shadow-sm active:scale-98 ${
+                        isCurrent
+                          ? 'bg-indigo-950/70 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
+                          : 'bg-slate-800/80 hover:bg-slate-750 border-slate-700/80 hover:border-indigo-400'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className={`w-11 h-11 rounded-2xl bg-gradient-to-tr ${u.avatarColor || 'from-indigo-500 to-purple-600'} text-white font-black text-base flex items-center justify-center flex-shrink-0 shadow-md`}>
+                          {u.displayName[0]?.toUpperCase() || 'U'}
                         </div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
-                          {new Date(u.lastLoginAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })} 上線
+                        <div className="overflow-hidden">
+                          <div className="font-extrabold text-sm sm:text-base text-white group-hover:text-indigo-200 truncate flex items-center gap-2">
+                            <span>{u.displayName}</span>
+                            {isCurrent && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40 flex items-center gap-1">
+                                <Check className="w-3 h-3" /> 使用中
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-400 mt-0.5">
+                            {u.isGuest ? '⚡ 免費玩家' : '🏆 會員帳號'} · 上次遊玩：{new Date(u.lastLoginAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          removeSavedUser(u.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition"
-                        title="移除此帳號記錄"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                      <div className="p-1 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition">
-                        <ArrowRight className="w-4 h-4" />
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {savedUsers.length > 1 && (
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              removeSavedUser(u.id);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-500 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition"
+                            title="刪除此帳號"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        <div className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                          isCurrent
+                            ? 'bg-emerald-600/80 text-emerald-100'
+                            : 'bg-indigo-600 text-white group-hover:bg-indigo-500 shadow-md shadow-indigo-600/25'
+                        }`}>
+                          <span>{isCurrent ? '已登入' : '點選登入'}</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -231,7 +265,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     type="text"
                     value={quickNick}
                     onChange={e => setQuickNick(e.target.value)}
-                    placeholder="輸入暱稱，例如：大腦大師"
+                    placeholder="輸入新玩家暱稱，例如：大腦大師"
                     maxLength={15}
                     className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700 focus:border-indigo-400 text-white placeholder-slate-500 text-sm outline-none transition"
                   />
@@ -252,7 +286,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600 text-white font-bold text-sm shadow-lg shadow-indigo-500/25 transition active:scale-98 disabled:opacity-50"
                 >
                   <Zap className="w-4 h-4 fill-current text-amber-300" />
-                  <span>{loading ? '建立中...' : '立即開始免費遊玩'}</span>
+                  <span>{loading ? '建立中...' : '立即建立並直接登入'}</span>
                 </button>
               </form>
             </div>
@@ -300,7 +334,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     onClick={() => setActiveTab('profiles')}
                     className="text-xs text-indigo-400 hover:text-indigo-300 underline"
                   >
-                    ← 返回免費玩家清單
+                    ← 返回玩家選取清單
                   </button>
                 </div>
 
@@ -369,7 +403,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         <div className="p-3.5 border-t border-slate-800 bg-slate-950 flex items-center justify-between text-xs text-slate-400 px-6">
           <span>不想登入？也可以先玩！</span>
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem('gameset_user_entered', 'true');
+              }
+              onClose();
+            }}
             className="text-indigo-400 hover:text-white font-semibold underline underline-offset-2 transition"
           >
             以訪客身份直接體驗 →

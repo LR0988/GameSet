@@ -115,21 +115,78 @@ export const storage = {
   getSavedUsers(): SavedUser[] {
     try {
       const data = localStorage.getItem(SAVED_USERS_KEY);
-      if (data) {
-        const list: SavedUser[] = JSON.parse(data);
-        return list.sort((a, b) => b.lastLoginAt - a.lastLoginAt);
+      let list: SavedUser[] = data ? JSON.parse(data) : [];
+
+      // Auto-detect previous Supabase user logins from browser localStorage
+      if (typeof window !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
+            try {
+              const sessionVal = JSON.parse(localStorage.getItem(k) || '{}');
+              const sbUser = sessionVal?.user;
+              if (sbUser) {
+                const name = sbUser.user_metadata?.display_name || sbUser.email?.split('@')[0] || '會員玩家';
+                const exists = list.some(u => u.id === sbUser.id || u.email === sbUser.email);
+                if (!exists) {
+                  list.unshift({
+                    id: sbUser.id,
+                    displayName: name,
+                    email: sbUser.email || '',
+                    isGuest: false,
+                    avatarColor: 'from-indigo-500 to-purple-600',
+                    lastLoginAt: Date.now(),
+                  });
+                }
+              }
+            } catch {
+              // ignore
+            }
+          }
+        }
       }
+
+      // If still empty, provide friendly preset free users ready for instant 1-click play
+      if (list.length === 0) {
+        list = [
+          {
+            id: 'preset_challenger',
+            displayName: '大腦挑戰者 (免費玩家)',
+            email: 'challenger@gameset.local',
+            isGuest: true,
+            avatarColor: 'from-indigo-500 to-purple-600',
+            lastLoginAt: Date.now(),
+          },
+          {
+            id: 'preset_memory',
+            displayName: '記憶大師 (免費玩家)',
+            email: 'memory@gameset.local',
+            isGuest: true,
+            avatarColor: 'from-cyan-500 to-blue-600',
+            lastLoginAt: Date.now() - 3600000,
+          },
+          {
+            id: 'preset_speed',
+            displayName: '極限神經元 (免費玩家)',
+            email: 'speed@gameset.local',
+            isGuest: true,
+            avatarColor: 'from-emerald-400 to-teal-600',
+            lastLoginAt: Date.now() - 7200000,
+          },
+        ];
+        localStorage.setItem(SAVED_USERS_KEY, JSON.stringify(list));
+      }
+
+      return list.sort((a, b) => b.lastLoginAt - a.lastLoginAt);
     } catch {
-      // fallback
+      return [];
     }
-    return [];
   },
 
   saveUser(user: SavedUser) {
     try {
       const users = this.getSavedUsers().filter(u => u.id !== user.id && u.email !== user.email);
       users.unshift(user);
-      // Keep last 15 users
       if (users.length > 15) users.pop();
       localStorage.setItem(SAVED_USERS_KEY, JSON.stringify(users));
       this.setActiveUserId(user.id);

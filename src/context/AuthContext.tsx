@@ -42,6 +42,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const users = refreshSavedUsers();
 
+    // Check if user has already entered in this browser session
+    const sessionEntered = typeof window !== 'undefined' ? sessionStorage.getItem('gameset_user_entered') : 'true';
+
     // 1. Check Supabase session first
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       if (currentSession?.user) {
@@ -49,21 +52,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(currentSession.user);
         const metaName = currentSession.user.user_metadata?.display_name || currentSession.user.email?.split('@')[0] || '會員';
         setDisplayName(metaName);
-        setShowAuthModal(false);
       } else {
         // 2. Check if a local saved user was active
         const activeId = storage.getActiveUserId();
-        const activeUser = users.find(u => u.id === activeId);
+        const activeUser = users.find(u => u.id === activeId) || users[0];
 
         if (activeUser) {
-          // Restore active saved profile
-          loginAsSavedUser(activeUser);
-          setShowAuthModal(false);
-        } else {
-          // No active user: Open login screen immediately as requested!
-          setShowAuthModal(true);
+          loginAsSavedUser(activeUser, false);
         }
       }
+
+      // If user hasn't explicitly picked a user or dismissed modal in this session, show the login screen first!
+      if (!sessionEntered) {
+        setShowAuthModal(true);
+      }
+
       setLoading(false);
     });
 
@@ -86,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshSavedUsers]);
 
   // Log in as a saved free user profile
-  const loginAsSavedUser = async (savedUser: SavedUser) => {
+  const loginAsSavedUser = async (savedUser: SavedUser, markSessionEntered = true) => {
     const userObj: User = {
       id: savedUser.id,
       email: savedUser.email,
@@ -103,6 +106,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(userObj);
     setDisplayName(savedUser.displayName);
     storage.setActiveUserId(savedUser.id);
+
+    if (markSessionEntered && typeof window !== 'undefined') {
+      sessionStorage.setItem('gameset_user_entered', 'true');
+      setShowAuthModal(false);
+    }
 
     // Update last login timestamp
     const updated = { ...savedUser, lastLoginAt: Date.now() };
@@ -130,7 +138,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const name = data.user.user_metadata?.display_name || email.split('@')[0];
         setDisplayName(name);
 
-        // Record into saved users list
         const profile: SavedUser = {
           id: data.user.id,
           displayName: name,
@@ -141,6 +148,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         storage.saveUser(profile);
         refreshSavedUsers();
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('gameset_user_entered', 'true');
+        }
       }
       return { error: null };
     } catch (err: unknown) {
@@ -165,7 +175,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setDisplayName(cleanName);
         await db.saveProfile(data.user, cleanName);
 
-        // Immediate login attempt to activate session
         if (!data.session) {
           const res = await supabase.auth.signInWithPassword({ email, password });
           if (res.data.session) {
@@ -184,6 +193,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         storage.saveUser(profile);
         refreshSavedUsers();
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('gameset_user_entered', 'true');
+        }
       }
       return { error: null };
     } catch (err: unknown) {
@@ -231,7 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       storage.saveUser(savedUser);
       refreshSavedUsers();
-      await loginAsSavedUser(savedUser);
+      await loginAsSavedUser(savedUser, true);
 
       return { error: null, user: savedUser };
     } catch (err: unknown) {
@@ -249,6 +261,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setSession(null);
     setDisplayName('');
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('gameset_user_entered');
+    }
   };
 
   const updateDisplayName = async (name: string) => {
