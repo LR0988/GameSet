@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GameId } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Brain, Zap, Grid3X3, Gamepad2, Volume2, VolumeX, User, LogIn, Trophy, TrendingUp } from 'lucide-react';
+import { Brain, Zap, Grid3X3, Gamepad2, Volume2, VolumeX, User, LogIn, Trophy, TrendingUp, ChevronDown } from 'lucide-react';
 import { AuthModal } from './auth/AuthModal';
 import { UserProfileModal } from './auth/UserProfileModal';
 import { LeaderboardModal } from './leaderboard/LeaderboardModal';
@@ -111,7 +111,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             {user ? (
               <button
                 onClick={() => setIsProfileOpen(true)}
-                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl bg-indigo-950/60 border border-indigo-500/40 text-indigo-200 hover:bg-indigo-900/60 transition"
+                title="點擊切換使用者或查看個人成績"
+                className="flex items-center gap-1.5 pl-2 pr-2.5 py-1.5 rounded-xl bg-indigo-950/60 border border-indigo-500/40 text-indigo-200 hover:bg-indigo-900/60 transition group active:scale-95 shadow-sm"
               >
                 <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 text-white font-black text-xs flex items-center justify-center">
                   {(displayName || user.email || 'U')[0].toUpperCase()}
@@ -119,6 +120,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-xs font-bold max-w-[80px] sm:max-w-[110px] truncate">
                   {displayName || '會員'}
                 </span>
+                <ChevronDown className="w-3.5 h-3.5 text-indigo-400 group-hover:text-white transition-colors" />
               </button>
             ) : (
               <button

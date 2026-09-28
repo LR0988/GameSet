@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { storage } from '../../utils/storage';
-import { X, User, Mail, LogOut, Check, Trophy, Sparkles, Brain, Zap, Gamepad2, Grid3X3, Edit3 } from 'lucide-react';
+import {
+  X,
+  User,
+  Users,
+  UserPlus,
+  Mail,
+  LogOut,
+  Check,
+  Trophy,
+  Sparkles,
+  Brain,
+  Zap,
+  Gamepad2,
+  Grid3X3,
+  Edit3,
+} from 'lucide-react';
 import { sound } from '../../utils/sound';
 
 interface UserProfileModalProps {
@@ -10,12 +25,30 @@ interface UserProfileModalProps {
   onSwitchUser?: () => void;
 }
 
-export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, onSwitchUser }) => {
-  const { user, displayName, updateDisplayName, signOut } = useAuth();
+export const UserProfileModal: React.FC<UserProfileModalProps> = ({
+  isOpen,
+  onClose,
+  onSwitchUser,
+}) => {
+  const {
+    user,
+    displayName,
+    savedUsers,
+    loginAsSavedUser,
+    quickPlay,
+    updateDisplayName,
+    signOut,
+  } = useAuth();
+
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(displayName);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Adding new user in switcher
+  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [newNick, setNewNick] = useState('');
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   if (!isOpen || !user) return null;
 
@@ -32,8 +65,22 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     }
   };
 
+  const handleCreateNewUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newNick.trim() || isCreatingUser) return;
+    setIsCreatingUser(true);
+    await quickPlay(newNick.trim());
+    setIsCreatingUser(false);
+    setNewNick('');
+    setIsAddingUser(false);
+    sound.playClick();
+  };
+
   const handleSignOut = async () => {
     sound.playClick();
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('gameset_user_entered');
+    }
     await signOut();
     onClose();
   };
@@ -50,8 +97,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-850">
           <div className="flex items-center gap-2 font-bold text-lg text-white">
-            <User className="w-5 h-5 text-indigo-400" />
-            <span>玩家會員中心</span>
+            <Users className="w-5 h-5 text-indigo-400" />
+            <span>切換使用者與玩家中心</span>
           </div>
           <button
             onClick={onClose}
@@ -63,7 +110,92 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
 
         {/* Content Body */}
         <div className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
-          {/* User Info Card */}
+          {/* 1. Quick 1-Click User Switcher (點擊任意名字立即切換) */}
+          <div className="p-4 rounded-xl bg-slate-800/90 border border-indigo-500/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs sm:text-sm font-bold text-white">
+                  切換使用者 (點擊即時切換)：
+                </span>
+              </div>
+              {!isAddingUser && (
+                <button
+                  onClick={() => setIsAddingUser(true)}
+                  className="flex items-center gap-1 text-xs text-indigo-300 hover:text-white px-2 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 font-medium transition"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>新增玩家</span>
+                </button>
+              )}
+            </div>
+
+            {/* Inline Add New User Input */}
+            {isAddingUser && (
+              <form onSubmit={handleCreateNewUser} className="flex items-center gap-2 pt-1 animate-fadeIn">
+                <input
+                  type="text"
+                  autoFocus
+                  value={newNick}
+                  onChange={e => setNewNick(e.target.value)}
+                  placeholder="輸入新暱稱..."
+                  maxLength={15}
+                  className="flex-1 px-2.5 py-1 text-xs rounded-lg bg-slate-900 border border-indigo-400 text-white placeholder-slate-500 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!newNick.trim() || isCreatingUser}
+                  className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition"
+                >
+                  建立
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingUser(false);
+                    setNewNick('');
+                  }}
+                  className="p-1 text-slate-400 hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </form>
+            )}
+
+            {/* All Saved User Buttons */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {savedUsers.map(u => {
+                const isActive = u.id === user.id || u.displayName === displayName;
+
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      loginAsSavedUser(u);
+                      sound.playClick();
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition active:scale-95 shadow-sm ${
+                      isActive
+                        ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white border border-cyan-400 shadow-md ring-1 ring-cyan-400/40'
+                        : 'bg-slate-750 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700'
+                    }`}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-black/30 flex items-center justify-center text-[9px] font-black text-white">
+                      {u.displayName.charAt(0).toUpperCase()}
+                    </div>
+                    <span>{u.displayName}</span>
+                    {isActive && (
+                      <span className="text-[10px] px-1 py-0.2 rounded bg-black/30 text-cyan-200">
+                        使用中
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2. Current User Profile Info Card */}
           <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -73,7 +205,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 <div>
                   {!editingName ? (
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-white text-base">{displayName || '未設定暱稱'}</span>
+                      <span className="font-bold text-white text-base">
+                        {displayName || '未設定暱稱'}
+                      </span>
                       <button
                         onClick={() => {
                           setNewName(displayName);
@@ -117,7 +251,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
 
               <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
                 <Sparkles className="w-3 h-3" />
-                <span>雲端連線</span>
+                <span>已連線</span>
               </div>
             </div>
 
@@ -126,9 +260,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             )}
           </div>
 
-          {/* Personal Game Records Summary */}
+          {/* 3. Personal Game Records Summary */}
           <div className="space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">個人最佳成績記錄</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              個人最佳成績記錄
+            </h4>
             <div className="grid grid-cols-2 gap-2.5">
               <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 flex items-center gap-2.5">
                 <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400">
@@ -171,12 +307,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               </div>
             </div>
           </div>
-
-          {/* Account Meta */}
-          <div className="p-3 rounded-xl bg-slate-800/30 border border-slate-700/40 text-[11px] text-slate-500 space-y-1">
-            <div>使用者 ID: <span className="font-mono text-slate-400">{user.id}</span></div>
-            <div>註冊日期: <span className="text-slate-400">{new Date(user.created_at).toLocaleDateString()}</span></div>
-          </div>
         </div>
 
         {/* Footer */}
@@ -187,7 +317,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 text-rose-300 text-xs font-semibold transition"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>登出</span>
+              <span>切換 / 登出玩家</span>
             </button>
 
             {onSwitchUser && (
@@ -196,7 +326,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-indigo-300 text-xs font-semibold transition"
               >
                 <User className="w-3.5 h-3.5" />
-                <span>切換帳號</span>
+                <span>帳號登入</span>
               </button>
             )}
           </div>
@@ -205,7 +335,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition"
           >
-            確定
+            確定完成
           </button>
         </div>
       </div>

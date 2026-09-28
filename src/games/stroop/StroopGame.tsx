@@ -119,9 +119,6 @@ export const StroopGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto py-2 px-4 space-y-6">
-      {/* Historical Score Selector Above Game */}
-      <GameHistoryScoreSelector gameId="stroop" currentScore={score} />
-
       {/* Header */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel">
         <div className="flex items-center gap-3">
@@ -135,6 +132,9 @@ export const StroopGame: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Historical Scores Small Icon */}
+          <GameHistoryScoreSelector gameId="stroop" currentScore={score} />
+
           <button
             onClick={() => setIsAnalyticsOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition"

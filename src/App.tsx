@@ -1,23 +1,51 @@
-import React, { useState } from 'react';
-import { GameId } from './types';
+import React, { useState, useEffect } from 'react';
+import { GameId, SavedUser } from './types';
 import { Navbar } from './components/Navbar';
 import { NBackGame } from './games/nback/NBackGame';
 import { StroopGame } from './games/stroop/StroopGame';
 import { Game2048 } from './games/game2048/Game2048';
 import { SnakeGame } from './games/snake/SnakeGame';
 import { sound } from './utils/sound';
-import { AuthProvider } from './context/AuthContext';
-
-import { UserAndGameBar } from './components/common/UserAndGameBar';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { InitialUserPicker } from './components/auth/InitialUserPicker';
 
 export const AppContent: React.FC = () => {
   const [activeGame, setActiveGame] = useState<GameId>('nback');
   const [isMuted, setIsMuted] = useState<boolean>(sound.getMuted());
+  const { user, loginAsSavedUser } = useAuth();
+
+  const [hasEntered, setHasEntered] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('gameset_user_entered') === 'true';
+    }
+    return false;
+  });
+
+  // If user signs out and becomes null, reset entered state so initial picker is shown
+  useEffect(() => {
+    if (!user) {
+      if (typeof window !== 'undefined') {
+        const flag = sessionStorage.getItem('gameset_user_entered');
+        if (flag !== 'true') {
+          setHasEntered(false);
+        }
+      }
+    }
+  }, [user]);
 
   const handleToggleMute = () => {
     const nextMuted = !isMuted;
     sound.setMuted(nextMuted);
     setIsMuted(nextMuted);
+  };
+
+  const handleInitialEnter = (savedUser: SavedUser) => {
+    loginAsSavedUser(savedUser);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('gameset_user_entered', 'true');
+    }
+    setHasEntered(true);
+    sound.playClick();
   };
 
   return (
@@ -31,17 +59,19 @@ export const AppContent: React.FC = () => {
       />
 
       {/* Main Content Arena */}
-      <main className="flex-1 flex flex-col items-center justify-start py-4 px-2 sm:px-4">
-        {/* Direct 1-Click User & Game Selection Strip */}
-        <UserAndGameBar
-          activeGame={activeGame}
-          onSelectGame={setActiveGame}
-        />
-
-        {activeGame === 'nback' && <NBackGame />}
-        {activeGame === 'stroop' && <StroopGame />}
-        {activeGame === 'game2048' && <Game2048 />}
-        {activeGame === 'snake' && <SnakeGame />}
+      <main className="flex-1 flex flex-col items-center justify-center py-4 px-2 sm:px-4">
+        {!hasEntered ? (
+          /* 1. Only shown at initial login/entry: 1-click user selection */
+          <InitialUserPicker onEnter={handleInitialEnter} />
+        ) : (
+          /* 2. Direct game view (no redundant body game selector, full clean focus) */
+          <>
+            {activeGame === 'nback' && <NBackGame />}
+            {activeGame === 'stroop' && <StroopGame />}
+            {activeGame === 'game2048' && <Game2048 />}
+            {activeGame === 'snake' && <SnakeGame />}
+          </>
+        )}
       </main>
 
       {/* Footer */}
@@ -61,3 +91,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+

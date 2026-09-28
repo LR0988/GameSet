@@ -93,9 +93,6 @@ export const NBackGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto py-2 px-4 space-y-5">
-      {/* Historical Score Selector Above Game */}
-      <GameHistoryScoreSelector gameId="nback" currentScore={sessionStats?.score} />
-
       {/* Top Header Bar */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel shadow-lg">
         <div className="flex items-center gap-3">
@@ -149,7 +146,7 @@ export const NBackGame: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-300 text-xs sm:text-sm font-medium transition hover:text-white"
           >
             <HelpCircle className="w-4 h-4 text-indigo-400" />
-            <span>玩法教學</span>
+            <span>教學</span>
           </button>
 
           <button
@@ -157,19 +154,11 @@ export const NBackGame: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/50 text-indigo-300 text-xs sm:text-sm font-semibold transition hover:text-white"
           >
             <TrendingUp className="w-4 h-4 text-indigo-400" />
-            <span>分數趨勢</span>
+            <span>趨勢</span>
           </button>
 
-          <button
-            onClick={() => {
-              setHistory(storage.getNBackHistory());
-              setIsHistoryOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-300 text-xs sm:text-sm font-medium transition hover:text-white"
-          >
-            <History className="w-4 h-4 text-cyan-400" />
-            <span>歷史記錄</span>
-          </button>
+          {/* Historical Scores Small Icon */}
+          <GameHistoryScoreSelector gameId="nback" currentScore={sessionStats?.score} />
 
           <button
             onClick={() => setIsSettingsOpen(true)}

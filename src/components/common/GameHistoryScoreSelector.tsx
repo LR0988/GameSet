@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GameHistoryEntry, GameId } from '../../types';
 import { storage } from '../../utils/storage';
 import { useAuth } from '../../context/AuthContext';
-import { Trophy, History, Calendar, Award, X, Sparkles, User, ChevronDown } from 'lucide-react';
+import { Trophy, History, Calendar, X, Sparkles, User, ChevronDown } from 'lucide-react';
 
 interface GameHistoryScoreSelectorProps {
   gameId: GameId;
@@ -18,10 +18,12 @@ export const GameHistoryScoreSelector: React.FC<GameHistoryScoreSelectorProps> =
   onSelectRecord,
 }) => {
   const { user, displayName } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
   const [historyList, setHistoryList] = useState<GameHistoryEntry[]>([]);
   const [selectedRecordId, setSelectedRecordId] = useState<string>('');
   const [selectedRecord, setSelectedRecord] = useState<GameHistoryEntry | null>(null);
   const [userHighScore, setUserHighScore] = useState<number>(0);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const loadHistory = useCallback(() => {
     const list = storage.getGameHistory(gameId, user?.id, 'desc');
@@ -32,9 +34,20 @@ export const GameHistoryScoreSelector: React.FC<GameHistoryScoreSelectorProps> =
 
   useEffect(() => {
     loadHistory();
-    setSelectedRecordId('');
-    setSelectedRecord(null);
   }, [loadHistory, user?.id, displayName, currentScore]);
+
+  // Click outside to close popover
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
 
   const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
@@ -56,7 +69,12 @@ export const GameHistoryScoreSelector: React.FC<GameHistoryScoreSelectorProps> =
     if (onSelectRecord) onSelectRecord(null);
   };
 
-  // Helper to format detail summary for options
+  const handleQuickPick = (r: GameHistoryEntry) => {
+    setSelectedRecordId(r.id);
+    setSelectedRecord(r);
+    if (onSelectRecord) onSelectRecord(r);
+  };
+
   const getRecordSummary = (r: GameHistoryEntry) => {
     if (!r.details) return '';
     if (gameId === 'nback') {
@@ -77,41 +95,74 @@ export const GameHistoryScoreSelector: React.FC<GameHistoryScoreSelectorProps> =
   };
 
   return (
-    <div className={`w-full max-w-4xl mx-auto ${className}`}>
-      {/* Dropdown Selector Bar */}
-      <div className="w-full p-2.5 sm:p-3 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md backdrop-blur-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          {/* Label & Active User */}
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-400">
-              <History className="w-4 h-4" />
+    <div className={`relative inline-block ${className}`} ref={popoverRef}>
+      {/* Compact Small Icon Button (做成小圖示放在最上面) */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition active:scale-95 shadow-sm ${
+          isOpen
+            ? 'bg-cyan-600 text-white border-cyan-400 ring-2 ring-cyan-400/30'
+            : 'bg-slate-800/90 hover:bg-slate-750 border-slate-700/80 text-cyan-300 hover:text-white'
+        }`}
+        title="歷史玩過的分數與對局紀錄"
+      >
+        <History className="w-3.5 h-3.5 text-cyan-400" />
+        <span>歷史分數</span>
+        {historyList.length > 0 && (
+          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-200 border border-cyan-500/30 font-bold">
+            {historyList.length}
+          </span>
+        )}
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {/* Dropdown Popover */}
+      {isOpen && (
+        <div className="absolute right-0 sm:right-auto sm:left-0 top-full mt-2 w-80 sm:w-96 z-50 p-3.5 rounded-2xl bg-slate-900/95 border border-cyan-500/40 shadow-2xl backdrop-blur-xl animate-fadeIn text-slate-200">
+          {/* Popover Header */}
+          <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded-lg bg-cyan-500/20 text-cyan-400">
+                <History className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-white block">歷史玩過的分數</span>
+                <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                  <User className="w-2.5 h-2.5 text-indigo-400" />
+                  {displayName || '當前玩家'} 的紀錄
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs sm:text-sm font-bold text-white tracking-wide">
-                歷史玩過的分數：
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold flex items-center gap-1">
-                <User className="w-3 h-3 text-indigo-400" />
-                {displayName || '當前玩家'}
-              </span>
-              <span className="text-[11px] text-amber-400 font-semibold flex items-center gap-1 ml-1">
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-amber-400 font-bold flex items-center gap-1">
                 <Trophy className="w-3 h-3" />
-                最高 {userHighScore} 分
+                最高 {userHighScore}
               </span>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
-          {/* Dropdown element */}
-          <div className="relative flex-1 max-w-full sm:max-w-md">
+          {/* Past Scores Dropdown Selector */}
+          <div className="mb-2.5">
             <select
               value={selectedRecordId}
               onChange={handleSelect}
-              className="w-full appearance-none pl-3 pr-8 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-750 border border-slate-700 hover:border-slate-600 text-xs sm:text-sm text-slate-100 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-inner"
+              className="w-full pl-2.5 pr-6 py-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-slate-600 text-xs text-slate-100 font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-cyan-400 transition"
             >
               <option value="">
                 {historyList.length > 0
-                  ? `📜 點此選擇之前玩過的分數 (共 ${historyList.length} 筆歷史紀錄) ▾`
-                  : '📜 尚無此遊戲歷史紀錄 (完成一局後自動加入) ▾'}
+                  ? `📜 點此快速選擇場次 (${historyList.length} 場) ▾`
+                  : '📜 尚無歷史紀錄 (完成一局自動記錄) ▾'}
               </option>
 
               {historyList.map((r, idx) => {
@@ -121,103 +172,117 @@ export const GameHistoryScoreSelector: React.FC<GameHistoryScoreSelectorProps> =
 
                 return (
                   <option key={r.id} value={r.id} className="bg-slate-900 text-slate-100">
-                    {isBest ? '👑 [最高分] ' : isSample ? '💡 [範例] ' : `▸ 第 ${historyList.length - idx} 場 · `}
+                    {isBest ? '👑 [最高] ' : isSample ? '💡 [範例] ' : `▸ 第 ${historyList.length - idx} 場 · `}
                     {r.score} 分 ({r.date}) {summary ? `— ${summary}` : ''}
                   </option>
                 );
               })}
             </select>
-            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
-        </div>
 
-        {/* Selected Historical Score Inspection Panel */}
-        {selectedRecord && (
-          <div className="mt-3 p-3.5 rounded-xl bg-gradient-to-r from-indigo-950/70 via-slate-900 to-indigo-950/70 border border-indigo-500/50 shadow-lg animate-fadeIn text-slate-200">
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-indigo-500/30">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400 animate-spin-slow" />
-                <span className="text-xs font-bold text-indigo-200">歷史紀錄詳情回顧</span>
-                {selectedRecord.score === userHighScore && userHighScore > 0 ? (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-black">
-                    👑 玩家個人歷史最佳
+          {/* Selected Record Detail Inspection Card */}
+          {selectedRecord ? (
+            <div className="p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/40 text-xs space-y-2 mb-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="font-bold text-indigo-200">場次詳細數據</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearSelection}
+                  className="text-[10px] text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-slate-800"
+                >
+                  清除選擇
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">該場得分</span>
+                  <span className="text-base font-black text-cyan-400">{selectedRecord.score} 分</span>
+                </div>
+                <div className="p-1.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">遊玩時間</span>
+                  <span className="text-xs font-semibold text-slate-200 flex items-center gap-1 mt-0.5">
+                    <Calendar className="w-3 h-3 text-slate-400" />
+                    {selectedRecord.date}
                   </span>
-                ) : (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">
-                    距最高分差 {Math.max(0, userHighScore - selectedRecord.score)} 分
-                  </span>
-                )}
-              </div>
-
-              <button
-                onClick={handleClearSelection}
-                className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white px-2 py-0.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 transition"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>關閉檢視</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">該場得分</span>
-                <span className="text-lg font-black text-cyan-400">{selectedRecord.score} 分</span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block font-medium">對局時間</span>
-                <span className="text-xs font-bold text-slate-200 flex items-center gap-1 mt-0.5">
-                  <Calendar className="w-3 h-3 text-slate-400" />
-                  {selectedRecord.date}
-                </span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800 col-span-2">
-                <span className="text-[10px] text-slate-400 block font-medium">詳細指標數據</span>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap text-xs">
-                  {gameId === 'nback' && (
-                    <>
-                      <span className="font-semibold text-indigo-300">
-                        難度: {selectedRecord.details?.nLevel || 2}-Back
-                      </span>
-                      <span className="text-slate-500">|</span>
-                      <span className="font-semibold text-emerald-300">
-                        正確率: {selectedRecord.details?.accuracy ?? 0}%
-                      </span>
-                      <span className="text-slate-500">|</span>
-                      <span className="text-slate-400">
-                        模式: {selectedRecord.details?.mode === 'dual' ? '雙重 (位置+語音)' : selectedRecord.details?.mode || '雙重'}
-                      </span>
-                    </>
-                  )}
-
-                  {gameId === 'stroop' && (
-                    <span className="font-semibold text-amber-300">
-                      最高抗干擾連擊: {selectedRecord.details?.streak ?? 0} 連對
-                    </span>
-                  )}
-
-                  {gameId === 'game2048' && (
-                    <span className="font-semibold text-orange-300">
-                      合成最大方塊: {selectedRecord.details?.maxTile ?? 2048}
-                    </span>
-                  )}
-
-                  {gameId === 'snake' && (
-                    <span className="font-semibold text-green-300">
-                      貪食蛇結算長度: {selectedRecord.details?.length ?? 0} 格
-                    </span>
-                  )}
-
-                  {!selectedRecord.details && (
-                    <span className="text-slate-400">一般紀錄模式</span>
-                  )}
                 </div>
               </div>
+
+              {selectedRecord.details && (
+                <div className="p-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] text-slate-300">
+                  {gameId === 'nback' && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-indigo-300">
+                        {selectedRecord.details.nLevel || 2}-Back
+                      </span>
+                      <span>·</span>
+                      <span className="font-semibold text-emerald-300">
+                        正確率 {selectedRecord.details.accuracy ?? 0}%
+                      </span>
+                      <span>·</span>
+                      <span className="text-slate-400">
+                        {selectedRecord.details.mode === 'dual' ? '雙重模式' : selectedRecord.details.mode || '雙重'}
+                      </span>
+                    </div>
+                  )}
+                  {gameId === 'stroop' && (
+                    <span className="font-semibold text-amber-300">
+                      連續答對: {selectedRecord.details.streak ?? 0} 題
+                    </span>
+                  )}
+                  {gameId === 'game2048' && (
+                    <span className="font-semibold text-orange-300">
+                      最大方塊: {selectedRecord.details.maxTile ?? 2048}
+                    </span>
+                  )}
+                  {gameId === 'snake' && (
+                    <span className="font-semibold text-green-300">
+                      蛇身長度: {selectedRecord.details.length ?? 0} 格
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        )}
-      </div>
+          ) : (
+            /* Quick Clickable Recent Scores List */
+            <div className="space-y-1 max-h-44 overflow-y-auto pr-1">
+              <span className="text-[10px] uppercase font-bold text-slate-500 block mb-1">
+                最近遊玩成績 (點擊檢視)：
+              </span>
+              {historyList.slice(0, 5).map((r, idx) => {
+                const summary = getRecordSummary(r);
+                const isBest = r.score === userHighScore && userHighScore > 0;
+
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => handleQuickPick(r)}
+                    className="w-full flex items-center justify-between p-1.5 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-750 hover:border-slate-600 transition text-left text-xs active:scale-98"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-400 font-mono text-[11px]">#{historyList.length - idx}</span>
+                      <span className="font-bold text-white">{r.score} 分</span>
+                      {summary && <span className="text-[10px] text-slate-400">({summary})</span>}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {isBest && (
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                          最佳
+                        </span>
+                      )}
+                      <span className="text-[10px] text-slate-500">{r.date}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

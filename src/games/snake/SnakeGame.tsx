@@ -158,9 +158,6 @@ export const SnakeGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center w-full max-w-lg mx-auto py-2 px-4 space-y-4">
-      {/* Historical Score Selector Above Game */}
-      <GameHistoryScoreSelector gameId="snake" currentScore={score} />
-
       {/* Top Bar */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel">
         <div>
@@ -168,6 +165,9 @@ export const SnakeGame: React.FC = () => {
           <p className="text-xs text-slate-400">使用方向鍵或虛擬手把操控蛇吃蘋果</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Historical Scores Small Icon */}
+          <GameHistoryScoreSelector gameId="snake" currentScore={score} />
+
           <button
             onClick={() => setIsAnalyticsOpen(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition"
