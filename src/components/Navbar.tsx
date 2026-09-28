@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { GameId } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Brain, Zap, Grid3X3, Gamepad2, Volume2, VolumeX, User, LogIn, Trophy, TrendingUp, ChevronDown } from 'lucide-react';
+import { Brain, Zap, Grid3X3, Gamepad2, LogIn, Trophy, ChevronDown } from 'lucide-react';
 import { AuthModal } from './auth/AuthModal';
 import { UserProfileModal } from './auth/UserProfileModal';
 import { LeaderboardModal } from './leaderboard/LeaderboardModal';
-import { AnalyticsModal } from './analytics/AnalyticsModal';
 
 interface NavbarProps {
   activeGame: GameId;
@@ -24,7 +23,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
-  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
   const games: { id: GameId; label: string; icon: React.ReactNode; tag?: string }[] = [
     { id: 'nback', label: 'N-Back 記憶訓練', icon: <Brain className="w-4 h-4" />, tag: '大腦核心' },
@@ -78,16 +76,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Global Controls & Links */}
           <div className="flex items-center gap-2">
-            {/* Analytics button */}
-            <button
-              onClick={() => setIsAnalyticsOpen(true)}
-              title="腦力分數趨勢與統計分析"
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-indigo-400 hover:bg-slate-850 transition flex items-center gap-1.5 text-xs font-semibold"
-            >
-              <TrendingUp className="w-4 h-4 text-indigo-400" />
-              <span className="hidden sm:inline text-slate-300">統計分析</span>
-            </button>
-
             {/* Leaderboard button */}
             <button
               onClick={() => setIsLeaderboardOpen(true)}
@@ -96,15 +84,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Trophy className="w-4 h-4 text-amber-400" />
               <span className="hidden sm:inline text-slate-300">排行榜</span>
-            </button>
-
-            {/* Sound Toggle */}
-            <button
-              onClick={onToggleMute}
-              title={isMuted ? '開啟音效' : '靜音'}
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-850 transition"
-            >
-              {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-indigo-400" />}
             </button>
 
             {/* User Auth Section */}
@@ -186,11 +165,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
         defaultGame={activeGame}
-      />
-      <AnalyticsModal
-        isOpen={isAnalyticsOpen}
-        onClose={() => setIsAnalyticsOpen(false)}
-        initialGameId={activeGame}
       />
     </>
   );

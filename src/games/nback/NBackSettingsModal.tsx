@@ -125,9 +125,9 @@ export const NBackSettingsModal: React.FC<NBackSettingsModalProps> = ({
             <label className="text-sm font-semibold text-slate-300">刺激間隔時間 (節奏速度)</label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { time: 3000, label: '放鬆 (3.0s)' },
-                { time: 2500, label: '標準 (2.5s)' },
-                { time: 2000, label: '敏捷 (2.0s)' },
+                { time: 2200, label: '放鬆 (2.2s)' },
+                { time: 1800, label: '標準 (1.8s)' },
+                { time: 1400, label: '敏捷 (1.4s)' },
               ].map(speed => (
                 <button
                   key={speed.time}

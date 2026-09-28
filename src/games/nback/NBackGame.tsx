@@ -6,7 +6,7 @@ import { NBackStats } from './NBackStats';
 import { NBackSettingsModal } from './NBackSettingsModal';
 import { NBackTutorialModal } from './NBackTutorialModal';
 import { storage } from '../../utils/storage';
-import { Sliders, HelpCircle, Trophy, Sparkles, Brain, History, Volume2, TrendingUp } from 'lucide-react';
+import { Sliders, HelpCircle, Trophy, Sparkles, Brain, History, Volume2, VolumeX, TrendingUp } from 'lucide-react';
 import { NBackSessionStats } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
@@ -92,76 +92,84 @@ export const NBackGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto py-2 px-4 space-y-5">
-      {/* Top Header Bar */}
-      <div className="w-full flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl glass-panel shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 shadow-md shadow-indigo-500/30 text-white">
-            <Brain className="w-6 h-6" />
+      {/* Top Header Bar (Strictly single row layout) */}
+      <div className="w-full flex items-center justify-between gap-2 sm:gap-3 p-3 sm:p-4 rounded-2xl glass-panel shadow-lg">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 shadow-md shadow-indigo-500/30 text-white flex-shrink-0">
+            <Brain className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-wide flex items-center gap-2">
-              N-Back 大腦記憶訓練
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-base md:text-xl font-black text-white tracking-wide flex items-center gap-1.5 sm:gap-2 truncate">
+              <span>N-Back</span>
+              <span className="hidden sm:inline">大腦記憶訓練</span>
+              <span className="text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                 {settings.nLevel}-Back
               </span>
             </h2>
-            <p className="text-xs text-slate-400">
-              {settings.mode === 'dual' ? '雙重模式 (Dual N-Back: 空間位置 + 語音字母)' : settings.mode === 'position' ? '空間位置模式 (Spatial N-Back)' : '聽覺字母模式 (Audio N-Back)'}
+            <p className="text-[10px] sm:text-xs text-slate-400 truncate hidden md:block">
+              {settings.mode === 'dual' ? '雙重模式 (位置 + 字母)' : settings.mode === 'position' ? '空間位置模式' : '聽覺字母模式'}
             </p>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Action Buttons (Strictly single line) */}
+        <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 flex-shrink-0">
           {/* Quick Sound Mute/Unmute (聲音開關) */}
           <button
             onClick={handleToggleSound}
-            className={`p-2 rounded-xl border text-xs sm:text-sm font-medium transition ${
+            className={`p-1.5 sm:p-2 rounded-xl border transition flex items-center justify-center ${
               settings.soundEnabled
                 ? 'bg-slate-800/80 hover:bg-slate-750 border-slate-700/60 text-slate-300 hover:text-white'
                 : 'bg-rose-950/60 border-rose-800/80 text-rose-300 hover:text-rose-100'
             }`}
             title={settings.soundEnabled ? '音效開啟 (點擊靜音)' : '音效已靜音 (點擊開啟)'}
           >
-            {settings.soundEnabled ? <Volume2 className="w-4 h-4 text-indigo-400" /> : <span className="text-rose-400 text-xs font-bold">🔇 靜音</span>}
+            {settings.soundEnabled ? (
+              <Volume2 className="w-4 h-4 text-indigo-400" />
+            ) : (
+              <VolumeX className="w-4 h-4 text-rose-400" />
+            )}
           </button>
 
-          {/* Sound Test Button (放在聲音開關的右邊) */}
+          {/* Sound Test Button (寫「測試」就好) */}
           <button
             onClick={handleTestSound}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs sm:text-sm font-semibold transition active:scale-95 ${
+            className={`flex items-center gap-1 px-2 sm:px-2.5 md:px-3 py-1.5 rounded-xl border text-xs sm:text-sm font-semibold transition active:scale-95 whitespace-nowrap ${
               isTestingSound
                 ? 'bg-cyan-500 text-white border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.6)] animate-pulse'
                 : 'bg-indigo-600/30 hover:bg-indigo-600/50 border-indigo-500/50 text-indigo-200 hover:text-white shadow-sm'
             }`}
             title="點擊測試音效與字母語音"
           >
-            <Volume2 className={`w-4 h-4 text-cyan-400 ${isTestingSound ? 'animate-bounce' : ''}`} />
-            <span>{isTestingSound ? '播放測試中...' : soundTested ? '🔊 測試聲音 (已播)' : '🔊 測試聲音'}</span>
+            <Volume2 className={`w-3.5 h-3.5 text-cyan-400 ${isTestingSound ? 'animate-bounce' : ''}`} />
+            <span>{isTestingSound ? '測試中' : '測試'}</span>
           </button>
 
+          {/* 教學 */}
           <button
             onClick={() => setIsTutorialOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-300 text-xs sm:text-sm font-medium transition hover:text-white"
+            className="flex items-center gap-1 px-2 sm:px-2.5 md:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-300 text-xs sm:text-sm font-medium transition hover:text-white whitespace-nowrap"
           >
-            <HelpCircle className="w-4 h-4 text-indigo-400" />
+            <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
             <span>教學</span>
           </button>
 
+          {/* 趨勢 */}
           <button
             onClick={() => setIsAnalyticsOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/50 text-indigo-300 text-xs sm:text-sm font-semibold transition hover:text-white"
+            className="flex items-center gap-1 px-2 sm:px-2.5 md:px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/50 text-indigo-300 text-xs sm:text-sm font-semibold transition hover:text-white whitespace-nowrap"
           >
-            <TrendingUp className="w-4 h-4 text-indigo-400" />
+            <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
             <span>趨勢</span>
           </button>
 
+          {/* 設定 (寫「設定」就好) */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-300 text-xs sm:text-sm font-medium transition hover:text-white"
+            className="flex items-center gap-1 px-2 sm:px-2.5 md:px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 border border-slate-700/60 text-slate-300 text-xs sm:text-sm font-medium transition hover:text-white whitespace-nowrap"
           >
-            <Sliders className="w-4 h-4 text-amber-400" />
-            <span>參數設定</span>
+            <Sliders className="w-3.5 h-3.5 text-amber-400" />
+            <span>設定</span>
           </button>
         </div>
       </div>

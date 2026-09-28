@@ -11,8 +11,8 @@ export const defaultNBackSettings: NBackSettings = {
   nLevel: 2,
   mode: 'dual',
   trials: 20,
-  stimulusDuration: 600,
-  intervalDuration: 2500,
+  stimulusDuration: 500,
+  intervalDuration: 1800,
   matchProbability: 0.35,
   adaptiveDifficulty: true,
   soundEnabled: true,
@@ -33,7 +33,14 @@ export const storage = {
     try {
       const data = localStorage.getItem(NBACK_SETTINGS_KEY);
       if (data) {
-        return { ...defaultNBackSettings, ...JSON.parse(data) };
+        const parsed = JSON.parse(data);
+        if (parsed.intervalDuration === 2500) {
+          parsed.intervalDuration = 1800;
+        }
+        if (parsed.stimulusDuration === 600) {
+          parsed.stimulusDuration = 500;
+        }
+        return { ...defaultNBackSettings, ...parsed };
       }
     } catch {
       // fallback
