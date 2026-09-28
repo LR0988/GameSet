@@ -259,15 +259,10 @@ export const storage = {
         filtered = filtered.filter(item => item.gameId === gameId);
       }
 
-      if (userId) {
-        const userSpecific = filtered.filter(item => item.userId === userId);
-        if (userSpecific.length > 0) {
-          filtered = userSpecific;
-        } else {
-          // If this user has no played games yet, provide sample games tagged as demo
-          // so the user can immediately preview and interact with the history selector
-          filtered = filtered.filter(item => item.isSample || !item.userId);
-        }
+      // Strictly isolate by current target user
+      const targetUserId = userId !== undefined ? userId : this.getActiveUserId();
+      if (targetUserId) {
+        filtered = filtered.filter(item => item.userId === targetUserId);
       }
 
       filtered.sort((a, b) => (sortOrder === 'asc' ? a.timestamp - b.timestamp : b.timestamp - a.timestamp));
@@ -279,11 +274,11 @@ export const storage = {
 
   getUserHighScore(gameId: GameId, userId?: string): number {
     try {
-      const targetUserId = userId || this.getActiveUserId();
+      const targetUserId = userId !== undefined ? userId : this.getActiveUserId();
       if (targetUserId) {
         const users = this.getSavedUsers();
         const u = users.find(user => user.id === targetUserId);
-        if (u?.highScores?.[gameId]) {
+        if (u?.highScores?.[gameId] && u.highScores[gameId]! > 0) {
           return u.highScores[gameId]!;
         }
         const userRecords = this.getGameHistory(gameId, targetUserId);
@@ -291,10 +286,84 @@ export const storage = {
           const userMax = Math.max(...userRecords.map(r => r.score));
           if (userMax > 0) return userMax;
         }
+        return 0;
       }
       return this.getHighScore(gameId);
     } catch {
       return 0;
+    }
+  },
+
+  // Aggregates real player high scores for leaderboard
+  getLocalLeaderboard(gameId: GameId): {
+    id: string;
+    userId: string;
+    userEmail: string;
+    displayName: string;
+    gameId: string;
+    score: number;
+    details?: Record<string, unknown>;
+    createdAt: string;
+  }[] {
+    try {
+      const users = this.getSavedUsers();
+      // Pass null to get all games without filtering to a single user
+      const allHistory = this.getGameHistory(gameId, '', 'desc');
+
+      const userBestMap = new Map<string, {
+        userId: string;
+        displayName: string;
+        userEmail: string;
+        score: number;
+        timestamp: number;
+      }>();
+
+      // 1. Populate registered users
+      users.forEach(u => {
+        const hs = u.highScores?.[gameId] || 0;
+        if (hs > 0) {
+          userBestMap.set(u.id, {
+            userId: u.id,
+            displayName: u.displayName || '玩家',
+            userEmail: u.email || '',
+            score: hs,
+            timestamp: u.lastLoginAt || Date.now(),
+          });
+        }
+      });
+
+      // 2. Populate / update from history entries
+      allHistory.forEach(h => {
+        const uid = h.userId || 'guest_user';
+        const u = users.find(user => user.id === uid);
+        const name = h.userName || u?.displayName || '玩家';
+        const existing = userBestMap.get(uid);
+
+        if (!existing || h.score > existing.score) {
+          userBestMap.set(uid, {
+            userId: uid,
+            displayName: name,
+            userEmail: u?.email || '',
+            score: h.score,
+            timestamp: h.timestamp || Date.now(),
+          });
+        }
+      });
+
+      return Array.from(userBestMap.values())
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(item => ({
+          id: `local_${item.userId}_${gameId}`,
+          userId: item.userId,
+          userEmail: item.userEmail,
+          displayName: item.displayName,
+          gameId,
+          score: item.score,
+          createdAt: new Date(item.timestamp).toISOString(),
+        }));
+    } catch {
+      return [];
     }
   },
 

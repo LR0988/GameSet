@@ -35,7 +35,11 @@ export const SnakeGame: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
-  const [highScore, setHighScore] = useState<number>(storage.getHighScore('snake'));
+  const [highScore, setHighScore] = useState<number>(0);
+
+  useEffect(() => {
+    setHighScore(storage.getUserHighScore('snake', user?.id));
+  }, [user]);
 
   const directionRef = useRef<Direction>('UP');
   directionRef.current = direction;
@@ -105,8 +109,12 @@ export const SnakeGame: React.FC = () => {
       storage.saveGameRecord({
         gameId: 'snake',
         score,
+        userId: user?.id,
+        userName: displayName || '玩家',
         details: { length: snake.length, speedMs, wrapBorders },
       });
+      const hs = storage.getUserHighScore('snake', user?.id);
+      setHighScore(hs);
     }
     if (user && score > 0) {
       db.saveScore(user.id, user.email || '', displayName || '玩家', 'snake', score);
@@ -509,7 +517,7 @@ export const SnakeGame: React.FC = () => {
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
               {history.length === 0 ? (
                 <div className="text-center py-6 text-slate-500 text-xs sm:text-sm">
-                  目前尚無對局記錄，點擊「訓練」開始第一次挑戰吧！
+                  目前（{displayName || '當前玩家'}）尚無對局記錄，點擊「訓練」開始第一次挑戰吧！
                 </div>
               ) : (
                 history.slice(0, 10).map((item, idx) => (

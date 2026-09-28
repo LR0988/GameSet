@@ -85,11 +85,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     onClose();
   };
 
-  // Local game best records
-  const nbackScore = storage.getHighScore('nback');
-  const stroopScore = storage.getHighScore('stroop');
-  const game2048Score = storage.getHighScore('2048');
-  const snakeScore = storage.getHighScore('snake');
+  // Current user's personal best records
+  const nbackScore = storage.getUserHighScore('nback', user.id);
+  const stroopScore = storage.getUserHighScore('stroop', user.id);
+  const game2048Score = storage.getUserHighScore('game2048', user.id);
+  const snakeScore = storage.getUserHighScore('snake', user.id);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">

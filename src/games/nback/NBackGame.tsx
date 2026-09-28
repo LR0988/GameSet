@@ -5,7 +5,7 @@ import { NBackControls } from './NBackControls';
 import { NBackStats } from './NBackStats';
 import { storage } from '../../utils/storage';
 import { Sliders, HelpCircle, Trophy, Sparkles, Volume2, VolumeX, TrendingUp, Brain, Zap } from 'lucide-react';
-import { NBackSessionStats } from '../../types';
+import { NBackSessionStats, GameHistoryEntry } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../utils/supabase';
 import { sound } from '../../utils/sound';
@@ -15,7 +15,7 @@ export const NBackGame: React.FC = () => {
   const { user, displayName } = useAuth();
   const initialSettings = storage.getNBackSettings();
   const [activeTab, setActiveTab] = useState<'train' | 'settings' | 'analytics' | 'tutorial'>('train');
-  const [history, setHistory] = useState<NBackSessionStats[]>([]);
+  const [history, setHistory] = useState<GameHistoryEntry[]>([]);
   const [highScore, setHighScore] = useState<number>(0);
   const [isTestingSound, setIsTestingSound] = useState(false);
   const [soundNotice, setSoundNotice] = useState<string | null>(null);
@@ -71,15 +71,30 @@ export const NBackGame: React.FC = () => {
   } = useNBack(initialSettings);
 
   useEffect(() => {
-    setHighScore(storage.getHighScore('nback'));
-    setHistory(storage.getNBackHistory());
+    setHighScore(storage.getUserHighScore('nback', user?.id));
+    setHistory(storage.getGameHistory('nback', user?.id, 'desc'));
 
     if (sessionStats && user) {
+      storage.saveGameRecord({
+        gameId: 'nback',
+        score: sessionStats.score,
+        details: {
+          nLevel: sessionStats.nLevel,
+          mode: sessionStats.mode,
+          accuracy: sessionStats.overallAccuracy,
+        },
+        userId: user.id,
+        userName: displayName || '玩家',
+      });
+
       db.saveScore(user.id, user.email || '', displayName || '玩家', 'nback', sessionStats.score, {
         nLevel: sessionStats.nLevel,
         mode: sessionStats.mode,
         accuracy: sessionStats.overallAccuracy,
       });
+
+      setHighScore(storage.getUserHighScore('nback', user.id));
+      setHistory(storage.getGameHistory('nback', user.id, 'desc'));
     }
   }, [sessionStats, user, displayName]);
 
@@ -406,7 +421,7 @@ export const NBackGame: React.FC = () => {
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
               {history.length === 0 ? (
                 <div className="text-center py-6 text-slate-500 text-xs sm:text-sm">
-                  目前尚無訓練記錄，點擊「訓練挑戰」開始第一次訓練吧！
+                  目前（{displayName || '當前玩家'}）尚無訓練記錄，點擊「訓練」開始第一次訓練吧！
                 </div>
               ) : (
                 history.slice(0, 10).map((item, idx) => (
@@ -416,13 +431,17 @@ export const NBackGame: React.FC = () => {
                   >
                     <div>
                       <div className="font-bold text-white flex items-center gap-2">
-                        <span>{item.nLevel}-Back</span>
-                        <span className="text-[11px] font-normal text-slate-400">({item.mode})</span>
+                        <span>{item.details?.nLevel || 2}-Back</span>
+                        {item.details?.mode && (
+                          <span className="text-[11px] font-normal text-slate-400">({item.details.mode})</span>
+                        )}
                       </div>
                       <div className="text-[11px] text-slate-500">{item.date}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-extrabold text-emerald-400">{item.overallAccuracy}% 正確率</div>
+                      {item.details?.accuracy !== undefined && (
+                        <div className="font-extrabold text-emerald-400">{item.details.accuracy}% 正確率</div>
+                      )}
                       <div className="text-[11px] text-amber-400 font-semibold">{item.score} 分</div>
                     </div>
                   </div>

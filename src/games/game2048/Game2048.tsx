@@ -44,9 +44,13 @@ export const Game2048: React.FC = () => {
     [0, 0, 0, 0],
   ]);
   const [score, setScore] = useState<number>(0);
-  const [highScore, setHighScore] = useState<number>(storage.getHighScore('2048'));
+  const [highScore, setHighScore] = useState<number>(0);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [won, setWon] = useState<boolean>(false);
+
+  useEffect(() => {
+    setHighScore(storage.getUserHighScore('game2048', user?.id));
+  }, [user]);
 
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -192,7 +196,7 @@ export const Game2048: React.FC = () => {
 
         if (newScore > highScore) {
           setHighScore(newScore);
-          storage.saveHighScore('2048', newScore);
+          storage.saveHighScore('game2048', newScore);
         }
 
         // Check win condition based on user goal
@@ -230,8 +234,12 @@ export const Game2048: React.FC = () => {
             storage.saveGameRecord({
               gameId: 'game2048',
               score: newScore,
+              userId: user?.id,
+              userName: displayName || '玩家',
               details: { maxTile, targetGoal },
             });
+            const hs = storage.getUserHighScore('game2048', user?.id);
+            setHighScore(hs);
           }
           if (user && newScore > 0) {
             db.saveScore(user.id, user.email || '', displayName || '玩家', 'game2048', newScore);
@@ -561,7 +569,7 @@ export const Game2048: React.FC = () => {
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
               {history.length === 0 ? (
                 <div className="text-center py-6 text-slate-500 text-xs sm:text-sm">
-                  目前尚無對局記錄，點擊「訓練」開始第一次挑戰吧！
+                  目前（{displayName || '當前玩家'}）尚無對局記錄，點擊「訓練」開始第一次挑戰吧！
                 </div>
               ) : (
                 history.slice(0, 10).map((item, idx) => (

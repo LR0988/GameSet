@@ -143,16 +143,21 @@ export const StroopGame: React.FC = () => {
   };
 
   useEffect(() => {
+    setHighScore(storage.getUserHighScore('stroop', user?.id));
+  }, [user]);
+
+  useEffect(() => {
     if (isGameOver) {
-      storage.saveHighScore('stroop', score);
       if (score > 0) {
         storage.saveGameRecord({
           gameId: 'stroop',
           score,
+          userId: user?.id,
+          userName: displayName || '玩家',
           details: { streak, duration },
         });
       }
-      const hs = storage.getHighScore('stroop');
+      const hs = storage.getUserHighScore('stroop', user?.id);
       setHighScore(hs);
       if (score >= hs && score > 0) {
         confetti({ particleCount: 80, spread: 60 });
@@ -506,7 +511,7 @@ export const StroopGame: React.FC = () => {
             <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
               {history.length === 0 ? (
                 <div className="text-center py-6 text-slate-500 text-xs sm:text-sm">
-                  目前尚無對局記錄，點擊「訓練」開始第一次挑戰吧！
+                  目前（{displayName || '當前玩家'}）尚無對局記錄，點擊「訓練」開始第一次挑戰吧！
                 </div>
               ) : (
                 history.slice(0, 10).map((item, idx) => (

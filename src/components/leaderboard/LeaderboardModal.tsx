@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { GameId } from '../../types';
 import { db, CloudScore } from '../../utils/supabase';
-import { X, Trophy, Brain, Zap, Grid3X3, Gamepad2, Medal, RotateCw } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { X, Trophy, Brain, Zap, Grid3X3, Gamepad2, Medal, RotateCw, User } from 'lucide-react';
 
 interface LeaderboardModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   onClose,
   defaultGame = 'nback',
 }) => {
+  const { user, displayName } = useAuth();
   const [selectedGame, setSelectedGame] = useState<GameId>(defaultGame);
   const [scores, setScores] = useState<CloudScore[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +49,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-850">
           <div className="flex items-center gap-2 font-bold text-lg text-white">
             <Trophy className="w-5 h-5 text-amber-400" />
-            <span>全球腦力排行榜</span>
+            <span>腦力全體排行榜</span>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -96,9 +98,9 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               <div className="w-12 h-12 rounded-full bg-slate-800 mx-auto flex items-center justify-center text-slate-500">
                 <Trophy className="w-6 h-6" />
               </div>
-              <p className="text-slate-400 text-sm font-semibold">此遊戲目前尚無雲端排行資料</p>
+              <p className="text-slate-400 text-sm font-semibold">此遊戲目前尚無排行資料</p>
               <p className="text-slate-500 text-xs max-w-xs mx-auto">
-                登入帳號後進行遊戲，您的分數將會自動上傳至雲端排行榜！
+                開始進行挑戰，您的得分將會即時列入排行榜！
               </p>
             </div>
           ) : (
@@ -106,12 +108,17 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               const isTop1 = index === 0;
               const isTop2 = index === 1;
               const isTop3 = index === 2;
+              const isMe = (user && item.userId === user.id) || (displayName && item.displayName === displayName);
+              const playerName = item.displayName || '玩家';
+              const initialLetter = playerName.charAt(0).toUpperCase();
 
               return (
                 <div
                   key={item.id || index}
                   className={`p-3 rounded-xl border flex items-center justify-between text-xs sm:text-sm transition ${
-                    isTop1
+                    isMe
+                      ? 'bg-indigo-950/50 border-indigo-500/60 shadow-md ring-1 ring-indigo-500/30'
+                      : isTop1
                       ? 'bg-amber-500/10 border-amber-500/30'
                       : isTop2
                       ? 'bg-slate-300/10 border-slate-300/30'
@@ -129,15 +136,25 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       ) : isTop3 ? (
                         <Medal className="w-5 h-5 text-amber-600 inline" />
                       ) : (
-                        <span className="text-slate-500">{index + 1}</span>
+                        <span className="text-slate-400 font-bold">{index + 1}</span>
                       )}
                     </div>
+
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white text-xs shadow">
+                      {initialLetter}
+                    </div>
+
                     <div>
                       <div className="font-bold text-white flex items-center gap-1.5">
-                        <span>{item.displayName || '匿名玩家'}</span>
+                        <span>{playerName}</span>
+                        {isMe && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-500/30 text-indigo-300 border border-indigo-400/40">
+                            我
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-500">
-                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '近日'}
+                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '近期記錄'}
                       </div>
                     </div>
                   </div>

@@ -52,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(currentSession.user);
         const metaName = currentSession.user.user_metadata?.display_name || currentSession.user.email?.split('@')[0] || '會員';
         setDisplayName(metaName);
+        storage.setActiveUserId(currentSession.user.id);
       } else {
         // 2. Check if a local saved user was active
         const activeId = storage.getActiveUserId();
@@ -77,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session.user);
         const metaName = session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || '';
         setDisplayName(metaName);
+        storage.setActiveUserId(session.user.id);
       }
       setLoading(false);
     });
