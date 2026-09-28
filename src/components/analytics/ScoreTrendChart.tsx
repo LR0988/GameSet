@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { GameHistoryEntry } from '../../types';
 
 interface ScoreTrendChartProps {
@@ -21,7 +21,18 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({
     index: number;
   } | null>(null);
 
-  if (!data || data.length === 0) {
+  // Filter valid items with safe numerical scores
+  const validData = useMemo(() => {
+    return (data || [])
+      .filter(d => d && typeof d === 'object')
+      .map(d => ({
+        ...d,
+        score: typeof d.score === 'number' && !isNaN(d.score) ? Math.max(0, d.score) : 0,
+        date: d.date || '剛剛',
+      }));
+  }, [data]);
+
+  if (!validData || validData.length === 0) {
     return (
       <div className="w-full h-56 flex flex-col items-center justify-center rounded-2xl bg-slate-800/30 border border-slate-700/50 text-slate-400 p-6 text-center">
         <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-xl mb-2">
@@ -41,24 +52,27 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({
   const paddingTop = 25;
   const paddingBottom = 35;
 
-  const chartWidth = svgWidth - paddingLeft - paddingRight;
-  const chartHeight = svgHeight - paddingTop - paddingBottom;
+  const chartWidth = Math.max(100, svgWidth - paddingLeft - paddingRight);
+  const chartHeight = Math.max(80, svgHeight - paddingTop - paddingBottom);
 
-  const scores = data.map(d => d.score);
-  const minScore = Math.min(...scores);
-  const maxScore = Math.max(...scores);
+  const scores = validData.map(d => d.score);
+  const minScore = scores.length > 0 ? Math.min(...scores) : 0;
+  const maxScore = scores.length > 0 ? Math.max(...scores) : 0;
+
   // Add a little breathing room on the Y axis
   const yMin = Math.max(0, Math.floor(minScore * 0.8));
   const yMax = Math.max(10, Math.ceil(maxScore * 1.15));
-  const yRange = yMax - yMin || 1;
+  const yRange = yMax - yMin > 0 ? yMax - yMin : 10;
 
-  // Calculate coordinates for each data point
-  const points = data.map((entry, index) => {
-    const x = data.length === 1
-      ? paddingLeft + chartWidth / 2
-      : paddingLeft + (index / (data.length - 1)) * chartWidth;
-    const y = paddingTop + chartHeight - ((entry.score - yMin) / yRange) * chartHeight;
-    return { x, y, entry, index };
+  // Calculate coordinates for each data point safely
+  const points = validData.map((entry, index) => {
+    const x =
+      validData.length === 1
+        ? paddingLeft + chartWidth / 2
+        : paddingLeft + (index / (validData.length - 1)) * chartWidth;
+    const normalizedY = (entry.score - yMin) / yRange;
+    const y = paddingTop + chartHeight - normalizedY * chartHeight;
+    return { x, y: isNaN(y) ? paddingTop + chartHeight : y, entry, index };
   });
 
   // Construct SVG Path string
@@ -67,15 +81,16 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({
   }, '');
 
   // Construct filled Area Path
-  const areaD = points.length > 0
-    ? `${pathD} L ${points[points.length - 1].x} ${paddingTop + chartHeight} L ${points[0].x} ${paddingTop + chartHeight} Z`
-    : '';
+  const areaD =
+    points.length > 0
+      ? `${pathD} L ${points[points.length - 1].x} ${paddingTop + chartHeight} L ${points[0].x} ${paddingTop + chartHeight} Z`
+      : '';
 
   // Generate 4 horizontal grid reference lines
   const gridLines = [0, 0.33, 0.66, 1].map(ratio => {
     const val = Math.round(yMin + ratio * yRange);
     const y = paddingTop + chartHeight - ratio * chartHeight;
-    return { val, y };
+    return { val, y: isNaN(y) ? paddingTop : y };
   });
 
   return (
@@ -147,49 +162,60 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({
         )}
 
         {/* Data points */}
-        {points.map((pt, idx) => (
-          <g key={idx}>
-            {/* Outer pulsating ring for highest score or hovered */}
-            {(hoveredPoint?.index === idx || pt.entry.score === maxScore) && (
+        {points.map((pt, idx) => {
+          const isHighest = maxScore > 0 && pt.entry.score === maxScore;
+          const isHovered = hoveredPoint?.index === idx;
+
+          return (
+            <g key={idx}>
+              {/* Outer pulsating ring for highest score or hovered */}
+              {(isHovered || isHighest) && (
+                <circle
+                  cx={pt.x}
+                  cy={pt.y}
+                  r="7"
+                  fill="none"
+                  stroke={color}
+                  strokeWidth="1.5"
+                  className="animate-ping opacity-60"
+                />
+              )}
+
+              {/* Inner solid circle */}
               <circle
                 cx={pt.x}
                 cy={pt.y}
-                r="7"
-                fill="none"
+                r={isHovered ? 6 : 4}
+                fill="#0f172a"
                 stroke={color}
-                strokeWidth="1.5"
-                className="animate-ping opacity-60"
+                strokeWidth="2.5"
+                className="cursor-pointer transition-all duration-150 hover:scale-125"
+                onMouseEnter={() => setHoveredPoint(pt)}
+                onMouseLeave={() => setHoveredPoint(null)}
+                onClick={() => setHoveredPoint(pt)}
               />
-            )}
 
-            {/* Inner solid circle */}
-            <circle
-              cx={pt.x}
-              cy={pt.y}
-              r={hoveredPoint?.index === idx ? 6 : 4}
-              fill="#0f172a"
-              stroke={color}
-              strokeWidth="2.5"
-              className="cursor-pointer transition-all duration-150 hover:scale-125"
-              onMouseEnter={() => setHoveredPoint(pt)}
-              onMouseLeave={() => setHoveredPoint(null)}
-              onClick={() => setHoveredPoint(pt)}
-            />
-
-            {/* X-axis date / round label for selected intervals */}
-            {(idx === 0 || idx === points.length - 1 || idx === Math.floor(points.length / 2)) && (
-              <text
-                x={pt.x}
-                y={paddingTop + chartHeight + 18}
-                textAnchor={idx === 0 ? 'start' : idx === points.length - 1 ? 'end' : 'middle'}
-                fill="rgba(148, 163, 184, 0.6)"
-                fontSize="10"
-              >
-                {pt.entry.date}
-              </text>
-            )}
-          </g>
-        ))}
+              {/* X-axis date / round label */}
+              {(idx === 0 || idx === points.length - 1 || idx === Math.floor(points.length / 2)) && (
+                <text
+                  x={pt.x}
+                  y={paddingTop + chartHeight + 18}
+                  textAnchor={
+                    idx === 0 && points.length > 1
+                      ? 'start'
+                      : idx === points.length - 1 && points.length > 1
+                      ? 'end'
+                      : 'middle'
+                  }
+                  fill="rgba(148, 163, 184, 0.6)"
+                  fontSize="10"
+                >
+                  {pt.entry.date}
+                </text>
+              )}
+            </g>
+          );
+        })}
       </svg>
 
       {/* Floating Tooltip */}
@@ -197,22 +223,28 @@ export const ScoreTrendChart: React.FC<ScoreTrendChartProps> = ({
         <div
           className="absolute z-20 pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 bg-slate-900/95 border border-slate-700 rounded-xl px-3 py-2 shadow-2xl backdrop-blur-md text-xs transition-all duration-100"
           style={{
-            left: `${(hoveredPoint.x / svgWidth) * 100}%`,
+            left: `${Math.max(10, Math.min(90, (hoveredPoint.x / svgWidth) * 100))}%`,
             top: `${(hoveredPoint.y / svgHeight) * 100}%`,
           }}
         >
           <div className="font-mono font-bold text-white text-sm flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-            <span>{hoveredPoint.entry.score} {unit}</span>
+            <span>
+              {hoveredPoint.entry.score} {unit}
+            </span>
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">{hoveredPoint.entry.date}</div>
           {hoveredPoint.entry.details && (
             <div className="text-[10px] text-indigo-300 mt-1 pt-1 border-t border-slate-800">
               {hoveredPoint.entry.details.nLevel && `難度：${hoveredPoint.entry.details.nLevel}-Back `}
-              {hoveredPoint.entry.details.accuracy && `正確率：${hoveredPoint.entry.details.accuracy}%`}
-              {hoveredPoint.entry.details.streak && `連擊：${hoveredPoint.entry.details.streak} 次`}
-              {hoveredPoint.entry.details.maxTile && `最大方塊：${hoveredPoint.entry.details.maxTile}`}
-              {hoveredPoint.entry.details.length && `蛇長：${hoveredPoint.entry.details.length}`}
+              {hoveredPoint.entry.details.accuracy !== undefined &&
+                `正確率：${hoveredPoint.entry.details.accuracy}% `}
+              {hoveredPoint.entry.details.streak !== undefined &&
+                `連擊：${hoveredPoint.entry.details.streak} 次 `}
+              {hoveredPoint.entry.details.maxTile !== undefined &&
+                `最大方塊：${hoveredPoint.entry.details.maxTile} `}
+              {hoveredPoint.entry.details.length !== undefined &&
+                `蛇長：${hoveredPoint.entry.details.length} `}
             </div>
           )}
         </div>
