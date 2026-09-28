@@ -185,10 +185,15 @@ export function useNBack(initialSettings: NBackSettings) {
     setFeedback({});
 
     // Sound stimulus
-    if (settings.soundEnabled && (settings.mode === 'dual' || settings.mode === 'audio')) {
-      sound.speakLetter(trial.letter);
-    } else if (settings.soundEnabled && settings.mode === 'position') {
-      sound.playClick();
+    if (settings.soundEnabled) {
+      if (settings.mode === 'dual') {
+        sound.playSpatialTone(trial.position);
+        sound.speakLetter(trial.letter);
+      } else if (settings.mode === 'position') {
+        sound.playSpatialTone(trial.position);
+      } else if (settings.mode === 'audio') {
+        sound.speakLetter(trial.letter);
+      }
     }
 
     // Hide stimulus after stimulusDuration
@@ -240,6 +245,9 @@ export function useNBack(initialSettings: NBackSettings) {
 
   // Start new game
   const startGame = useCallback(() => {
+    // Unlock browser audio context on direct user gesture
+    sound.unlockAudio();
+
     // Clear any timers
     if (trialTimerRef.current) clearTimeout(trialTimerRef.current);
     if (stimulusTimerRef.current) clearTimeout(stimulusTimerRef.current);
@@ -255,7 +263,7 @@ export function useNBack(initialSettings: NBackSettings) {
     setIsPaused(false);
 
     sound.playClick();
-    // Start with 1.5s preparation countdown
+    // Start with 1.0s preparation countdown
     setTimeout(() => {
       runTrial(0, generated, []);
     }, 1000);
@@ -278,15 +286,18 @@ export function useNBack(initialSettings: NBackSettings) {
     if (currentResponse.positionPressed) return; // already pressed
 
     setCurrentResponse(prev => ({ ...prev, positionPressed: true }));
-    sound.playClick();
 
-    // Instant feedback visual
+    // Instant feedback visual & audio
     if (currentTrialIdx >= settings.nLevel && currentStimulus) {
       if (currentStimulus.isPositionMatch) {
+        sound.playCorrect();
         setFeedback(f => ({ ...f, position: 'correct' }));
       } else {
+        sound.playWrong();
         setFeedback(f => ({ ...f, position: 'wrong' }));
       }
+    } else {
+      sound.playClick();
     }
   }, [isPlaying, isPaused, currentTrialIdx, currentResponse.positionPressed, currentStimulus, settings.nLevel]);
 
@@ -296,15 +307,18 @@ export function useNBack(initialSettings: NBackSettings) {
     if (currentResponse.audioPressed) return; // already pressed
 
     setCurrentResponse(prev => ({ ...prev, audioPressed: true }));
-    sound.playClick();
 
-    // Instant feedback visual
+    // Instant feedback visual & audio
     if (currentTrialIdx >= settings.nLevel && currentStimulus) {
       if (currentStimulus.isAudioMatch) {
+        sound.playCorrect();
         setFeedback(f => ({ ...f, audio: 'correct' }));
       } else {
+        sound.playWrong();
         setFeedback(f => ({ ...f, audio: 'wrong' }));
       }
+    } else {
+      sound.playClick();
     }
   }, [isPlaying, isPaused, currentTrialIdx, currentResponse.audioPressed, currentStimulus, settings.nLevel]);
 

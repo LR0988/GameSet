@@ -9,6 +9,7 @@ interface AuthContextType {
   displayName: string;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: Error | null }>;
+  quickPlay: (nickname: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateDisplayName: (name: string) => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
@@ -86,6 +87,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user) {
         setDisplayName(name || email.split('@')[0]);
         await db.saveProfile(data.user, name);
+
+        // Immediate login attempt to activate session without waiting for email verification
+        if (!data.session) {
+          const res = await supabase.auth.signInWithPassword({ email, password });
+          if (res.data.session) {
+            setSession(res.data.session);
+            setUser(res.data.user);
+          }
+        }
+      }
+      return { error: null };
+    } catch (err: unknown) {
+      return { error: err as Error };
+    }
+  };
+
+  const quickPlay = async (nickname: string) => {
+    try {
+      const cleanNick = nickname.trim() || '大腦挑戰者';
+      const randomId = Math.random().toString(36).substring(2, 9);
+      const guestEmail = `player_${randomId}@gameset.local`;
+      const guestPass = `pass_${randomId}_${Date.now()}`;
+
+      const { data, error } = await supabase.auth.signUp({
+        email: guestEmail,
+        password: guestPass,
+        options: {
+          data: { display_name: cleanNick },
+        },
+      });
+
+      if (!error && data.user) {
+        setDisplayName(cleanNick);
+        setUser(data.user);
+        if (data.session) setSession(data.session);
+        await db.saveProfile(data.user, cleanNick);
+      } else {
+        setDisplayName(cleanNick);
       }
       return { error: null };
     } catch (err: unknown) {
@@ -134,6 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         displayName,
         signIn,
         signUp,
+        quickPlay,
         signOut,
         updateDisplayName,
         resetPassword,
