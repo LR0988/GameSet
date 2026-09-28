@@ -11,13 +11,11 @@ interface NavbarProps {
   onSelectGame: (game: GameId) => void;
   isMuted?: boolean;
   onToggleMute?: () => void;
-  actions?: React.ReactNode;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeGame,
   onSelectGame,
-  actions,
 }) => {
   const { user, displayName, showAuthModal, setShowAuthModal } = useAuth();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -50,31 +48,23 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Game Switcher Tabs & Actions (Desktop) */}
-          <div className="hidden md:flex items-center gap-2 min-w-0">
-            <nav className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
-              {games.map(g => (
-                <button
-                  key={g.id}
-                  onClick={() => onSelectGame(g.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                    activeGame === g.id
-                      ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                  }`}
-                >
-                  {g.icon}
-                  <span>{g.label}</span>
-                </button>
-              ))}
-            </nav>
-
-            {actions && (
-              <div className="flex items-center gap-1 pl-1">
-                {actions}
-              </div>
-            )}
-          </div>
+          {/* Game Switcher Tabs (Desktop) */}
+          <nav className="hidden md:flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+            {games.map(g => (
+              <button
+                key={g.id}
+                onClick={() => onSelectGame(g.id)}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+                  activeGame === g.id
+                    ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+              >
+                {g.icon}
+                <span>{g.label}</span>
+              </button>
+            ))}
+          </nav>
 
           {/* Global Controls & Links */}
           <div className="flex items-center gap-2">
@@ -128,30 +118,22 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Mobile Game Switcher Bar & Actions */}
-        <div className="flex md:hidden items-center justify-between overflow-x-auto px-3 py-1.5 border-t border-slate-800/60 gap-2 bg-slate-900/60">
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {games.map(g => (
-              <button
-                key={g.id}
-                onClick={() => onSelectGame(g.id)}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
-                  activeGame === g.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200 bg-slate-800/40'
-                }`}
-              >
-                {g.icon}
-                <span>{g.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {actions && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {actions}
-            </div>
-          )}
+        {/* Mobile Game Switcher Bar */}
+        <div className="flex md:hidden overflow-x-auto px-4 py-2 border-t border-slate-800/60 gap-1.5 bg-slate-900/50">
+          {games.map(g => (
+            <button
+              key={g.id}
+              onClick={() => onSelectGame(g.id)}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition ${
+                activeGame === g.id
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-400 hover:text-slate-200 bg-slate-800/40'
+              }`}
+            >
+              {g.icon}
+              <span>{g.label}</span>
+            </button>
+          ))}
         </div>
       </header>
 

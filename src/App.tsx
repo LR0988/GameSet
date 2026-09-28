@@ -12,7 +12,6 @@ import { InitialUserPicker } from './components/auth/InitialUserPicker';
 export const AppContent: React.FC = () => {
   const [activeGame, setActiveGame] = useState<GameId>('nback');
   const [isMuted, setIsMuted] = useState<boolean>(sound.getMuted());
-  const [headerActions, setHeaderActions] = useState<React.ReactNode>(null);
   const { user, loginAsSavedUser } = useAuth();
 
   const [hasEntered, setHasEntered] = useState<boolean>(() => {
@@ -54,13 +53,9 @@ export const AppContent: React.FC = () => {
       {/* Top Navbar with Auth, Leaderboard & Game Tabs */}
       <Navbar
         activeGame={activeGame}
-        onSelectGame={(g) => {
-          setHeaderActions(null);
-          setActiveGame(g);
-        }}
+        onSelectGame={setActiveGame}
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
-        actions={headerActions}
       />
 
       {/* Main Content Arena */}
@@ -71,7 +66,7 @@ export const AppContent: React.FC = () => {
         ) : (
           /* 2. Direct game view (no redundant body game selector, full clean focus) */
           <>
-            {activeGame === 'nback' && <NBackGame setHeaderActions={setHeaderActions} />}
+            {activeGame === 'nback' && <NBackGame />}
             {activeGame === 'stroop' && <StroopGame />}
             {activeGame === 'game2048' && <Game2048 />}
             {activeGame === 'snake' && <SnakeGame />}
