@@ -11,6 +11,38 @@ type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 
 const GRID_SIZE = 20;
 
+export type DPadSize = 'medium' | 'large' | 'xlarge';
+
+export const DPAD_CONFIG: Record<DPadSize, {
+  btnClass: string;
+  iconClass: string;
+  label: string;
+  subLabel: string;
+  pixels: string;
+}> = {
+  medium: {
+    btnClass: 'w-14 h-14',
+    iconClass: 'w-7 h-7',
+    label: '標準',
+    subLabel: '56px 輕巧',
+    pixels: '56px',
+  },
+  large: {
+    btnClass: 'w-[72px] h-[72px] sm:w-20 sm:h-20',
+    iconClass: 'w-9 h-9 sm:w-10 sm:h-10',
+    label: '加大',
+    subLabel: '72px 推薦預設',
+    pixels: '72px',
+  },
+  xlarge: {
+    btnClass: 'w-[88px] h-[88px] sm:w-24 sm:h-24',
+    iconClass: 'w-11 h-11 sm:w-12 sm:h-12',
+    label: '特大',
+    subLabel: '88px 巨大好按',
+    pixels: '88px',
+  },
+};
+
 export const SnakeGame: React.FC = () => {
   const { user, displayName } = useAuth();
   const [activeTab, setActiveTab] = useState<'train' | 'settings' | 'analytics' | 'tutorial'>('train');
@@ -23,6 +55,31 @@ export const SnakeGame: React.FC = () => {
   // Settings
   const [speedMs, setSpeedMs] = useState<number>(120); // 160ms easy, 120ms standard, 80ms fast
   const [wrapBorders, setWrapBorders] = useState<boolean>(false);
+
+  // Virtual D-Pad settings with localStorage persistence
+  const [dpadSize, setDpadSize] = useState<DPadSize>(() => {
+    const saved = localStorage.getItem('gameset_snake_dpad_size');
+    return (saved === 'medium' || saved === 'large' || saved === 'xlarge') ? saved : 'large';
+  });
+
+  const [alwaysShowDPad, setAlwaysShowDPad] = useState<boolean>(() => {
+    const saved = localStorage.getItem('gameset_snake_always_dpad');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const handleSetDPadSize = (size: DPadSize) => {
+    setDpadSize(size);
+    try {
+      localStorage.setItem('gameset_snake_dpad_size', size);
+    } catch (_) {}
+  };
+
+  const handleSetAlwaysShowDPad = (val: boolean) => {
+    setAlwaysShowDPad(val);
+    try {
+      localStorage.setItem('gameset_snake_always_dpad', val ? 'true' : 'false');
+    } catch (_) {}
+  };
 
   // Gameplay State
   const [snake, setSnake] = useState<Point[]>([
@@ -187,6 +244,15 @@ export const SnakeGame: React.FC = () => {
     if (newDir === 'RIGHT' && cur !== 'LEFT') setDirection('RIGHT');
   }, []);
 
+  const handleDirectionPress = useCallback((newDir: Direction) => {
+    changeDirection(newDir);
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try {
+        navigator.vibrate(15);
+      } catch (_) {}
+    }
+  }, [changeDirection]);
+
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -211,6 +277,7 @@ export const SnakeGame: React.FC = () => {
   }, [changeDirection, activeTab]);
 
   const history = storage.getGameHistory('snake', user?.id, 'desc');
+  const dpadConfig = DPAD_CONFIG[dpadSize] || DPAD_CONFIG.large;
 
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto py-2 px-3 sm:px-4 space-y-4">
@@ -395,33 +462,122 @@ export const SnakeGame: React.FC = () => {
             )}
           </div>
 
-          {/* On-screen D-pad for mobile users */}
-          <div className="flex flex-col items-center gap-1 sm:hidden pt-2">
-            <button
-              onClick={() => changeDirection('UP')}
-              className="p-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 active:bg-slate-700 shadow"
-            >
-              <ArrowUp className="w-5 h-5" />
-            </button>
-            <div className="flex gap-4">
+          {/* On-screen Ergonomic D-pad */}
+          <div className={`flex flex-col items-center gap-2.5 pt-2 select-none touch-manipulation ${alwaysShowDPad ? 'flex' : 'flex sm:hidden'}`}>
+            {/* Quick size switcher pills */}
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <span className="text-[11px] text-slate-400 font-medium">按鍵尺寸：</span>
+              <div className="inline-flex rounded-xl bg-slate-900/90 p-1 border border-slate-800 shadow-inner">
+                {(['medium', 'large', 'xlarge'] as DPadSize[]).map((sz) => {
+                  const cfg = DPAD_CONFIG[sz];
+                  const isSelected = dpadSize === sz;
+                  return (
+                    <button
+                      key={sz}
+                      type="button"
+                      onClick={() => handleSetDPadSize(sz)}
+                      className={`px-2.5 py-1 text-xs rounded-lg font-semibold transition ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-md shadow-emerald-600/30'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                      }`}
+                    >
+                      {cfg.label} <span className="text-[10px] opacity-75">({cfg.pixels})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Ergonomic Cross D-Pad */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-2.5 place-items-center select-none touch-manipulation my-1">
+              {/* Row 1: UP */}
+              <div />
               <button
-                onClick={() => changeDirection('LEFT')}
-                className="p-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 active:bg-slate-700 shadow"
+                type="button"
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleDirectionPress('UP');
+                }}
+                onClick={() => handleDirectionPress('UP')}
+                className={`flex items-center justify-center rounded-2xl border-2 transition-all shadow-lg active:scale-90 touch-manipulation ${
+                  dpadConfig.btnClass
+                } ${
+                  direction === 'UP'
+                    ? 'bg-emerald-600/30 border-emerald-400 text-emerald-300 shadow-emerald-500/20'
+                    : 'bg-slate-800/90 hover:bg-slate-750 border-slate-700/80 text-slate-200 active:bg-emerald-600 active:border-emerald-400 active:text-white'
+                }`}
+                aria-label="向上 (UP)"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowUp className={`${dpadConfig.iconClass} stroke-[2.5]`} />
               </button>
+              <div />
+
+              {/* Row 2: LEFT, CENTER, RIGHT */}
               <button
-                onClick={() => changeDirection('DOWN')}
-                className="p-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 active:bg-slate-700 shadow"
+                type="button"
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleDirectionPress('LEFT');
+                }}
+                onClick={() => handleDirectionPress('LEFT')}
+                className={`flex items-center justify-center rounded-2xl border-2 transition-all shadow-lg active:scale-90 touch-manipulation ${
+                  dpadConfig.btnClass
+                } ${
+                  direction === 'LEFT'
+                    ? 'bg-emerald-600/30 border-emerald-400 text-emerald-300 shadow-emerald-500/20'
+                    : 'bg-slate-800/90 hover:bg-slate-750 border-slate-700/80 text-slate-200 active:bg-emerald-600 active:border-emerald-400 active:text-white'
+                }`}
+                aria-label="向左 (LEFT)"
               >
-                <ArrowDown className="w-5 h-5" />
+                <ArrowLeft className={`${dpadConfig.iconClass} stroke-[2.5]`} />
               </button>
+
+              {/* Center decorative hub */}
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-900/90 border border-slate-800 flex items-center justify-center shadow-inner">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/70 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+              </div>
+
               <button
-                onClick={() => changeDirection('RIGHT')}
-                className="p-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 active:bg-slate-700 shadow"
+                type="button"
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleDirectionPress('RIGHT');
+                }}
+                onClick={() => handleDirectionPress('RIGHT')}
+                className={`flex items-center justify-center rounded-2xl border-2 transition-all shadow-lg active:scale-90 touch-manipulation ${
+                  dpadConfig.btnClass
+                } ${
+                  direction === 'RIGHT'
+                    ? 'bg-emerald-600/30 border-emerald-400 text-emerald-300 shadow-emerald-500/20'
+                    : 'bg-slate-800/90 hover:bg-slate-750 border-slate-700/80 text-slate-200 active:bg-emerald-600 active:border-emerald-400 active:text-white'
+                }`}
+                aria-label="向右 (RIGHT)"
               >
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className={`${dpadConfig.iconClass} stroke-[2.5]`} />
               </button>
+
+              {/* Row 3: DOWN */}
+              <div />
+              <button
+                type="button"
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleDirectionPress('DOWN');
+                }}
+                onClick={() => handleDirectionPress('DOWN')}
+                className={`flex items-center justify-center rounded-2xl border-2 transition-all shadow-lg active:scale-90 touch-manipulation ${
+                  dpadConfig.btnClass
+                } ${
+                  direction === 'DOWN'
+                    ? 'bg-emerald-600/30 border-emerald-400 text-emerald-300 shadow-emerald-500/20'
+                    : 'bg-slate-800/90 hover:bg-slate-750 border-slate-700/80 text-slate-200 active:bg-emerald-600 active:border-emerald-400 active:text-white'
+                }`}
+                aria-label="向下 (DOWN)"
+              >
+                <ArrowDown className={`${dpadConfig.iconClass} stroke-[2.5]`} />
+              </button>
+              <div />
             </div>
           </div>
         </div>
@@ -478,6 +634,58 @@ export const SnakeGame: React.FC = () => {
               type="checkbox"
               checked={wrapBorders}
               onChange={e => setWrapBorders(e.target.checked)}
+              className="w-5 h-5 rounded accent-emerald-500 cursor-pointer"
+            />
+          </div>
+
+          {/* Virtual D-Pad Size settings */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs sm:text-sm font-semibold text-slate-300">方向鍵按鈕尺寸 (虛擬按鍵)</label>
+              <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                目前：{DPAD_CONFIG[dpadSize].label} ({DPAD_CONFIG[dpadSize].pixels})
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { size: 'medium' as DPadSize, label: '標準', desc: '56px 輕便', tag: '省空間' },
+                { size: 'large' as DPadSize, label: '加大', desc: '72px 舒適', tag: '推薦' },
+                { size: 'xlarge' as DPadSize, label: '特大', desc: '88px 巨大', tag: '超好按' },
+              ].map(item => (
+                <button
+                  key={item.size}
+                  type="button"
+                  onClick={() => handleSetDPadSize(item.size)}
+                  className={`p-3 rounded-xl border text-center transition flex flex-col items-center gap-1 ${
+                    dpadSize === item.size
+                      ? 'bg-emerald-600/30 border-emerald-500 text-emerald-200 shadow-sm ring-1 ring-emerald-500/50'
+                      : 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-xs sm:text-sm">{item.label}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                      dpadSize === item.size ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'
+                    }`}>
+                      {item.tag}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-400">{item.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Always Show D-Pad Toggle */}
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/50">
+            <div>
+              <div className="text-xs sm:text-sm font-semibold text-slate-200">常駐顯示虛擬方向按鈕</div>
+              <div className="text-[11px] text-slate-400">在平板與電腦等大螢幕上也顯示螢幕方向鍵（觸控/滑鼠點擊）</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={alwaysShowDPad}
+              onChange={e => handleSetAlwaysShowDPad(e.target.checked)}
               className="w-5 h-5 rounded accent-emerald-500 cursor-pointer"
             />
           </div>
@@ -577,7 +785,7 @@ export const SnakeGame: React.FC = () => {
               <h4 className="font-bold text-white text-sm">操作方式</h4>
               <ul className="list-disc list-inside space-y-1.5 text-slate-400">
                 <li><strong className="text-white">電腦鍵盤：</strong>支援方向鍵（↑ ↓ ← →）或 WASD。</li>
-                <li><strong className="text-white">手機觸控：</strong>使用螢幕下方的虛擬十字方向按鈕。</li>
+                <li><strong className="text-white">手機/觸控：</strong>使用螢幕下方的虛擬十字方向按鈕（支援在訓練畫面或「設定」自訂按鍵尺寸：標準、加大、特大，零延遲反應並具備震動觸覺回饋）。</li>
               </ul>
             </div>
 
