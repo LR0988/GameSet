@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, db } from '../utils/supabase';
 import { storage } from '../utils/storage';
+import { cloudSync } from '../utils/cloudSync';
 import { SavedUser } from '../types';
 
 interface AuthContextType {
@@ -20,6 +21,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   updateDisplayName: (name: string) => Promise<{ error: Error | null }>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  refreshSavedUsers: (syncWithCloud?: boolean) => SavedUser[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,10 +34,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [savedUsers, setSavedUsers] = useState<SavedUser[]>([]);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
-  // Refresh saved users from storage
-  const refreshSavedUsers = useCallback(() => {
+  // Refresh saved users from storage and perform background cloud sync
+  const refreshSavedUsers = useCallback((syncWithCloud = true) => {
     const list = storage.getSavedUsers();
     setSavedUsers(list);
+
+    if (syncWithCloud) {
+      cloudSync.sync(list).then(synced => {
+        if (synced && synced.length > 0) {
+          storage.saveAllUsers(synced);
+          setSavedUsers(synced);
+        }
+      });
+    }
+
     return list;
   }, []);
 
@@ -86,6 +98,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
+  }, [refreshSavedUsers]);
+
+  // Auto-sync when user returns to window / switches between devices
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshSavedUsers(true);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', handleFocus);
+      return () => window.removeEventListener('focus', handleFocus);
+    }
   }, [refreshSavedUsers]);
 
   // Log in as a saved free user profile
@@ -316,6 +339,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signOut,
         updateDisplayName,
         resetPassword,
+        refreshSavedUsers,
       }}
     >
       {children}

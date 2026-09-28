@@ -38,12 +38,20 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
     quickPlay,
     updateDisplayName,
     signOut,
+    refreshSavedUsers,
   } = useAuth();
 
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(displayName);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Sync users when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      refreshSavedUsers(true);
+    }
+  }, [isOpen, refreshSavedUsers]);
 
   // Adding new user in switcher
   const [isAddingUser, setIsAddingUser] = useState(false);

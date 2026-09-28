@@ -1,4 +1,5 @@
 import { NBackSessionStats, NBackSettings, SavedUser, GameHistoryEntry, GameId } from '../types';
+import { cloudSync } from './cloudSync';
 
 const NBACK_SETTINGS_KEY = 'gameset_nback_settings';
 const NBACK_HISTORY_KEY = 'gameset_nback_history';
@@ -190,13 +191,23 @@ export const storage = {
     }
   },
 
+  saveAllUsers(users: SavedUser[]) {
+    try {
+      localStorage.setItem(SAVED_USERS_KEY, JSON.stringify(users));
+    } catch {
+      // Ignore
+    }
+  },
+
   saveUser(user: SavedUser) {
     try {
       const users = this.getSavedUsers().filter(u => u.id !== user.id && u.email !== user.email);
       users.unshift(user);
-      if (users.length > 15) users.pop();
+      if (users.length > 20) users.pop();
       localStorage.setItem(SAVED_USERS_KEY, JSON.stringify(users));
       this.setActiveUserId(user.id);
+      // Background push to shared cloud
+      cloudSync.pushCloudUsers(users);
     } catch {
       // Ignore
     }
@@ -209,6 +220,7 @@ export const storage = {
       if (this.getActiveUserId() === id) {
         this.setActiveUserId(null);
       }
+      cloudSync.pushCloudUsers(users);
     } catch {
       // Ignore
     }
